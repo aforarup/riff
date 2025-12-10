@@ -9,6 +9,7 @@ import { hashDescription } from './parser';
 const DECKS_PREFIX = 'decks/';
 const IMAGES_PREFIX = 'images/';
 const THEMES_PREFIX = 'themes/';
+const SLIDES_PREFIX = 'slides/';
 
 /**
  * Normalize deck ID for consistent storage
@@ -111,6 +112,7 @@ export async function saveDeck(id: string, content: string): Promise<Deck> {
   const blob = await put(pathname, content, {
     access: 'public',
     contentType: 'text/markdown',
+    addRandomSuffix: false,
   });
 
   return {
@@ -189,6 +191,7 @@ export async function saveImageToCache(
   const blob = await put(pathname, imageData, {
     access: 'public',
     contentType: 'image/png',
+    addRandomSuffix: false, // IMPORTANT: Keep exact pathname for cache lookups
   });
 
   return blob.url;
@@ -242,6 +245,7 @@ export async function saveTheme(deckId: string, css: string, prompt: string): Pr
   const blob = await put(pathname, themeData, {
     access: 'public',
     contentType: 'application/json',
+    addRandomSuffix: false,
   });
 
   return blob.url;
@@ -267,5 +271,82 @@ export async function getTheme(deckId: string): Promise<{ css: string; prompt: s
   } catch (error) {
     console.error('Error getting theme:', error);
     return null;
+  }
+}
+
+// ============================================
+// GENERATED SLIDE HTML OPERATIONS
+// ============================================
+
+/**
+ * Get cached HTML for a generated slide
+ */
+export async function getSlideHtmlFromCache(
+  deckId: string,
+  slideIndex: number,
+  contentHash: string
+): Promise<string | null> {
+  try {
+    const normalizedDeckId = normalizeDeckId(deckId);
+    const pathname = `${SLIDES_PREFIX}${normalizedDeckId}/${slideIndex}-${contentHash}.html`;
+    const { blobs } = await list({ prefix: pathname });
+
+    if (blobs.length === 0) return null;
+
+    const response = await fetch(blobs[0].url);
+    return await response.text();
+  } catch (error) {
+    console.error('Error getting slide HTML from cache:', error);
+    return null;
+  }
+}
+
+/**
+ * Save generated slide HTML to cache
+ */
+export async function saveSlideHtmlToCache(
+  deckId: string,
+  slideIndex: number,
+  contentHash: string,
+  html: string
+): Promise<string> {
+  const normalizedDeckId = normalizeDeckId(deckId);
+  const pathname = `${SLIDES_PREFIX}${normalizedDeckId}/${slideIndex}-${contentHash}.html`;
+
+  // Delete existing if regenerating
+  try {
+    const existing = await list({ prefix: pathname });
+    if (existing.blobs.length > 0) {
+      await del(existing.blobs[0].url);
+    }
+  } catch {
+    // Ignore
+  }
+
+  const blob = await put(pathname, html, {
+    access: 'public',
+    contentType: 'text/html',
+    addRandomSuffix: false,
+  });
+
+  return blob.url;
+}
+
+/**
+ * Delete all cached slide HTML for a deck
+ */
+export async function deleteSlideCache(deckId: string): Promise<boolean> {
+  try {
+    const normalizedDeckId = normalizeDeckId(deckId);
+    const prefix = `${SLIDES_PREFIX}${normalizedDeckId}/`;
+    const { blobs } = await list({ prefix });
+
+    for (const blob of blobs) {
+      await del(blob.url);
+    }
+    return true;
+  } catch (error) {
+    console.error('Error deleting slide cache:', error);
+    return false;
   }
 }

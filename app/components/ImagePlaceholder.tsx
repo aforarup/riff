@@ -4,7 +4,7 @@
 // VIBE SLIDES - Image Placeholder Component
 // ============================================
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { ImageIcon, Loader2, RefreshCw, Sparkles } from 'lucide-react';
 import { useStore } from '@/lib/store';
@@ -26,12 +26,61 @@ export function ImagePlaceholder({
 }: ImagePlaceholderProps) {
   const [localUrl, setLocalUrl] = useState<string | null>(imageUrl || null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isCheckingCache, setIsCheckingCache] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const cacheChecked = useRef(false);
 
-  const { imageCache, cacheImage } = useStore();
+  const { imageCache, cacheImage, imageStyle } = useStore();
 
-  // Check cache first
-  const cachedUrl = imageCache[description] || localUrl;
+  // Check cache first (include style in cache key for local lookup)
+  const cacheKey = imageStyle && imageStyle !== 'none'
+    ? `${imageStyle}:${description}`
+    : description;
+  const cachedUrl = imageCache[cacheKey] || localUrl;
+
+  // Auto-check server cache on mount
+  useEffect(() => {
+    if (cacheChecked.current || cachedUrl) {
+      setIsCheckingCache(false);
+      return;
+    }
+
+    cacheChecked.current = true;
+
+    const checkCache = async () => {
+      try {
+        // Read style directly from localStorage to avoid hydration timing issues
+        const savedStyle = typeof window !== 'undefined'
+          ? localStorage.getItem('vibe-slides-image-style') || 'none'
+          : 'none';
+
+        // Use GET request to check cache without generating
+        const response = await fetch('/api/image-cache?' + new URLSearchParams({
+          description,
+          styleId: savedStyle,
+        }));
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.url) {
+            // Build cache key with the saved style
+            const actualCacheKey = savedStyle && savedStyle !== 'none'
+              ? `${savedStyle}:${description}`
+              : description;
+            setLocalUrl(data.url);
+            cacheImage(actualCacheKey, data.url);
+          }
+        }
+      } catch (err) {
+        // Silently fail - user can manually generate
+        console.error('Cache check failed:', err);
+      } finally {
+        setIsCheckingCache(false);
+      }
+    };
+
+    checkCache();
+  }, [description, cachedUrl, cacheImage]);
 
   const handleGenerate = async (forceRegenerate = false) => {
     setIsGenerating(true);
@@ -43,6 +92,7 @@ export function ImagePlaceholder({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           description,
+          styleId: imageStyle,
           forceRegenerate,
         }),
       });
@@ -55,7 +105,7 @@ export function ImagePlaceholder({
 
       if (data.url) {
         setLocalUrl(data.url);
-        cacheImage(description, data.url);
+        cacheImage(cacheKey, data.url);
       } else if (data.placeholder) {
         setError(data.message || 'Image generation not available');
       }
@@ -121,7 +171,14 @@ export function ImagePlaceholder({
         ${isPresenting ? 'p-8' : 'p-4'}
       `}
     >
-      {isGenerating ? (
+      {isCheckingCache ? (
+        <>
+          <Loader2 className={`${isPresenting ? 'w-12 h-12' : 'w-8 h-8'} text-slide-muted/50 animate-spin`} />
+          <p className={`text-slide-muted/50 ${isPresenting ? 'text-lg' : 'text-xs'}`}>
+            Loading...
+          </p>
+        </>
+      ) : isGenerating ? (
         <>
           <div className="relative">
             <Loader2 className={`${isPresenting ? 'w-16 h-16' : 'w-10 h-10'} text-slide-accent animate-spin`} />

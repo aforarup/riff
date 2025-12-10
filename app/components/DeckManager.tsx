@@ -2,17 +2,16 @@
 
 // ============================================
 // VIBE SLIDES - Deck Manager Component
+// Minimal, Vercel-inspired design
 // ============================================
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  FolderOpen,
-  Plus,
-  Trash2,
   ChevronDown,
   FileText,
-  Loader2,
+  Plus,
+  Trash2,
   X,
 } from 'lucide-react';
 import { Deck } from '@/lib/types';
@@ -56,7 +55,6 @@ export function DeckManager({
       setDeleteConfirm(null);
     } else {
       setDeleteConfirm(id);
-      // Auto-reset after 3 seconds
       setTimeout(() => setDeleteConfirm(null), 3000);
     }
   };
@@ -67,20 +65,20 @@ export function DeckManager({
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="
-          flex items-center gap-3 px-4 py-2.5
-          bg-slate-800/80 hover:bg-slate-700/80
-          border border-slate-600/50 rounded-xl
-          text-slate-200 font-medium
-          transition-all duration-200
-          min-w-[200px]
+          flex items-center gap-2.5 px-3 py-2
+          bg-transparent hover:bg-surface
+          border border-border hover:border-border-hover
+          rounded-md text-text-secondary hover:text-text-primary
+          transition-all duration-fast
+          min-w-[180px]
         "
       >
-        <FolderOpen className="w-4 h-4 text-slate-400" />
-        <span className="flex-1 text-left truncate">
+        <FileText className="w-4 h-4 text-text-tertiary" />
+        <span className="flex-1 text-left text-sm truncate">
           {isLoading ? 'Loading...' : currentDeck?.name || 'Select Deck'}
         </span>
         <ChevronDown
-          className={`w-4 h-4 text-slate-400 transition-transform ${
+          className={`w-4 h-4 text-text-tertiary transition-transform duration-fast ${
             isOpen ? 'rotate-180' : ''
           }`}
         />
@@ -101,21 +99,21 @@ export function DeckManager({
 
             {/* Menu */}
             <motion.div
-              initial={{ opacity: 0, y: -10, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -10, scale: 0.95 }}
-              transition={{ duration: 0.15 }}
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.1 }}
               className="
-                absolute top-full left-0 mt-2 z-50
-                w-80 max-h-96 overflow-hidden
-                bg-slate-800 border border-slate-600/50 rounded-xl
-                shadow-2xl shadow-black/50
+                absolute top-full left-0 mt-1.5 z-50
+                w-72 max-h-96 overflow-hidden
+                bg-surface border border-border rounded-lg
+                shadow-xl shadow-black/20
               "
             >
               {/* Create new deck */}
-              <div className="p-2 border-b border-slate-700/50">
+              <div className="p-2 border-b border-border">
                 {isCreating ? (
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5">
                     <input
                       type="text"
                       value={newDeckName}
@@ -123,9 +121,9 @@ export function DeckManager({
                       onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
                       placeholder="Deck name..."
                       className="
-                        flex-1 px-3 py-2 bg-slate-900/50 rounded-lg
-                        text-slate-200 text-sm placeholder:text-slate-500
-                        border border-slate-600/50 focus:border-emerald-500/50
+                        flex-1 px-2.5 py-1.5 bg-background rounded-md
+                        text-text-primary text-sm placeholder:text-text-quaternary
+                        border border-border focus:border-border-focus
                         outline-none
                       "
                       autoFocus
@@ -133,7 +131,7 @@ export function DeckManager({
                     <button
                       onClick={handleCreate}
                       disabled={!newDeckName.trim()}
-                      className="p-2 bg-emerald-600 rounded-lg text-white hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="p-1.5 bg-text-primary text-background rounded-md hover:bg-text-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                     >
                       <Plus className="w-4 h-4" />
                     </button>
@@ -142,7 +140,7 @@ export function DeckManager({
                         setIsCreating(false);
                         setNewDeckName('');
                       }}
-                      className="p-2 bg-slate-700 rounded-lg text-slate-300 hover:bg-slate-600"
+                      className="p-1.5 bg-surface-hover rounded-md text-text-tertiary hover:text-text-primary transition-colors"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -151,25 +149,27 @@ export function DeckManager({
                   <button
                     onClick={() => setIsCreating(true)}
                     className="
-                      w-full flex items-center gap-2 px-3 py-2
-                      text-emerald-400 hover:text-emerald-300
-                      hover:bg-emerald-500/10 rounded-lg
-                      transition-colors text-sm font-medium
+                      w-full flex items-center gap-2 px-2.5 py-2
+                      text-text-secondary hover:text-text-primary
+                      hover:bg-surface-hover rounded-md
+                      transition-colors text-sm
                     "
                   >
                     <Plus className="w-4 h-4" />
-                    Create New Deck
+                    New Deck
                   </button>
                 )}
               </div>
 
               {/* Deck list */}
-              <div className="overflow-y-auto max-h-72 p-2 space-y-1">
+              <div className="overflow-y-auto max-h-64 p-1.5">
                 {decks.length === 0 ? (
-                  <div className="px-3 py-8 text-center text-slate-500">
-                    <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">No decks yet</p>
-                    <p className="text-xs mt-1">Create one to get started</p>
+                  <div className="px-3 py-6 text-center">
+                    <FileText className="w-6 h-6 mx-auto mb-2 text-text-quaternary" />
+                    <p className="text-sm text-text-tertiary">No decks yet</p>
+                    <p className="text-xs mt-0.5 text-text-quaternary">
+                      Create one to get started
+                    </p>
                   </div>
                 ) : (
                   decks.map((deck) => (
@@ -177,12 +177,12 @@ export function DeckManager({
                       key={deck.id}
                       layout
                       className={`
-                        group flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer
+                        group flex items-center gap-2.5 px-2.5 py-2 rounded-md cursor-pointer
                         transition-colors
                         ${
                           deck.id === currentDeckId
-                            ? 'bg-emerald-500/20 text-emerald-300'
-                            : 'hover:bg-slate-700/50 text-slate-300'
+                            ? 'bg-surface-hover text-text-primary'
+                            : 'hover:bg-surface-hover text-text-secondary hover:text-text-primary'
                         }
                       `}
                       onClick={() => {
@@ -190,24 +190,24 @@ export function DeckManager({
                         setIsOpen(false);
                       }}
                     >
-                      <FileText className="w-4 h-4 flex-shrink-0" />
+                      <FileText className="w-4 h-4 flex-shrink-0 text-text-tertiary" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{deck.name}</p>
-                        <p className="text-xs text-slate-500">
+                        <p className="text-sm truncate">{deck.name}</p>
+                        <p className="text-xs text-text-quaternary">
                           {new Date(deck.updatedAt).toLocaleDateString()}
                         </p>
                       </div>
                       <button
                         onClick={(e) => handleDelete(deck.id, e)}
                         className={`
-                          p-1.5 rounded-md transition-all opacity-0 group-hover:opacity-100
+                          p-1 rounded transition-all opacity-0 group-hover:opacity-100
                           ${
                             deleteConfirm === deck.id
-                              ? 'bg-red-500 text-white'
-                              : 'hover:bg-red-500/20 text-slate-400 hover:text-red-400'
+                              ? 'bg-error text-white opacity-100'
+                              : 'hover:bg-error/10 text-text-quaternary hover:text-error'
                           }
                         `}
-                        title={deleteConfirm === deck.id ? 'Click again to confirm' : 'Delete deck'}
+                        title={deleteConfirm === deck.id ? 'Click to confirm' : 'Delete'}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>

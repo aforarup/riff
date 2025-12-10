@@ -5,10 +5,21 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getImageFromCache, saveImageToCache, deleteImageFromCache } from '@/lib/blob';
+import { IMAGE_STYLE_PRESETS, ImageStyleId } from '@/lib/types';
+
+// Get the prompt template for a given style
+function getPromptForStyle(description: string, styleId: ImageStyleId): string {
+  const preset = IMAGE_STYLE_PRESETS.find((p) => p.id === styleId);
+  if (!preset) {
+    // Fallback to default
+    return `${description}. Style: professional, high-quality, presentation-style. Create a clean, visually striking image suitable for a presentation slide. Aspect ratio 16:9.`;
+  }
+  return preset.promptTemplate.replace('{description}', description);
+}
 
 export async function POST(request: NextRequest) {
   try {
-    const { description, style, forceRegenerate } = await request.json();
+    const { description, styleId, forceRegenerate } = await request.json();
 
     if (!description || typeof description !== 'string') {
       return NextResponse.json(
@@ -17,24 +28,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Create a cache key that includes the style
+    const cacheKey = styleId && styleId !== 'none'
+      ? `${styleId}:${description}`
+      : description;
+
     // Check cache first (unless force regenerating)
     if (!forceRegenerate) {
-      const cachedUrl = await getImageFromCache(description);
+      const cachedUrl = await getImageFromCache(cacheKey);
       if (cachedUrl) {
         return NextResponse.json({
           url: cachedUrl,
           cached: true,
           description,
+          styleId,
         });
       }
     } else {
       // Delete existing cache if force regenerating
-      await deleteImageFromCache(description);
+      await deleteImageFromCache(cacheKey);
     }
 
-    // Build the prompt for image generation
-    const styleModifier = style || 'professional, high-quality, presentation-style';
-    const fullPrompt = `${description}. Style: ${styleModifier}. Create a clean, visually striking image suitable for a presentation slide. Aspect ratio 16:9.`;
+    // Build the prompt using style preset
+    const fullPrompt = getPromptForStyle(description, styleId || 'none');
 
     // Call Gemini Imagen API
     const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
@@ -46,7 +62,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Using Gemini's imagen model for image generation
-    // Note: The exact endpoint may vary based on the API version
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:predict?key=${apiKey}`,
       {
@@ -117,6 +132,7 @@ export async function POST(request: NextRequest) {
           url: null,
           cached: false,
           description,
+          styleId,
           placeholder: true,
           message: 'Image generation not available. Please configure Imagen API.',
         });
@@ -124,12 +140,13 @@ export async function POST(request: NextRequest) {
 
       // Convert base64 to buffer and save
       const imageBuffer = Buffer.from(imagePart.inlineData.data, 'base64');
-      const cachedUrl = await saveImageToCache(description, imageBuffer);
+      const cachedUrl = await saveImageToCache(cacheKey, imageBuffer);
 
       return NextResponse.json({
         url: cachedUrl,
         cached: false,
         description,
+        styleId,
       });
     }
 
@@ -147,12 +164,13 @@ export async function POST(request: NextRequest) {
 
     // Convert base64 to buffer and save to cache
     const imageBuffer = Buffer.from(imageData, 'base64');
-    const cachedUrl = await saveImageToCache(description, imageBuffer);
+    const cachedUrl = await saveImageToCache(cacheKey, imageBuffer);
 
     return NextResponse.json({
       url: cachedUrl,
       cached: false,
       description,
+      styleId,
     });
   } catch (error) {
     console.error('Error generating image:', error);

@@ -14,23 +14,39 @@ import {
   Grid,
   Maximize,
   Minimize,
+  Sparkles,
+  Layout,
 } from 'lucide-react';
-import { ParsedDeck } from '@/lib/types';
+import { ParsedDeck, SlideRenderMode } from '@/lib/types';
 import { SlideRenderer } from './SlideRenderer';
+import { GeneratedSlide } from './GeneratedSlide';
 import { countReveals } from '@/lib/parser';
 
 interface PresenterProps {
   deck: ParsedDeck;
+  deckId: string;
   initialSlide?: number;
   themeCSS?: string;
+  themePrompt?: string;
+  initialRenderMode?: SlideRenderMode;
 }
 
-export function Presenter({ deck, initialSlide = 0, themeCSS }: PresenterProps) {
+export function Presenter({
+  deck,
+  deckId,
+  initialSlide = 0,
+  themeCSS,
+  themePrompt,
+  initialRenderMode = 'standard',
+}: PresenterProps) {
   const [currentSlide, setCurrentSlide] = useState(initialSlide);
   const [currentReveal, setCurrentReveal] = useState(0);
   const [showNotes, setShowNotes] = useState(false);
   const [showOverview, setShowOverview] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [renderMode, setRenderMode] = useState<SlideRenderMode>(initialRenderMode);
+
+  const isGeneratedMode = renderMode === 'generated';
 
   const slide = deck.slides[currentSlide];
   const totalSlides = deck.slides.length;
@@ -108,6 +124,9 @@ export function Presenter({ deck, initialSlide = 0, themeCSS }: PresenterProps) 
         case 'o':
           setShowOverview((o) => !o);
           break;
+        case 'v':
+          setRenderMode((m) => m === 'standard' ? 'generated' : 'standard');
+          break;
         case 'Home':
           goToSlide(0);
           break;
@@ -145,11 +164,22 @@ export function Presenter({ deck, initialSlide = 0, themeCSS }: PresenterProps) 
         }}
       >
         {slide && (
-          <SlideRenderer
-            slide={slide}
-            revealStep={currentReveal}
-            isPresenting={true}
-          />
+          isGeneratedMode ? (
+            <GeneratedSlide
+              slide={slide}
+              slideIndex={currentSlide}
+              deckId={deckId}
+              revealStep={currentReveal}
+              themePrompt={themePrompt}
+              isPresenting={true}
+            />
+          ) : (
+            <SlideRenderer
+              slide={slide}
+              revealStep={currentReveal}
+              isPresenting={true}
+            />
+          )
         )}
       </div>
 
@@ -218,6 +248,21 @@ export function Presenter({ deck, initialSlide = 0, themeCSS }: PresenterProps) 
             title="Overview (G)"
           >
             <Grid className="w-5 h-5" />
+          </button>
+
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setRenderMode((m) => m === 'standard' ? 'generated' : 'standard');
+            }}
+            className={`p-2 rounded-full transition-colors ${
+              isGeneratedMode
+                ? 'bg-gradient-to-r from-purple-500/30 to-cyan-500/30 text-cyan-300'
+                : 'hover:bg-white/10 text-white/70 hover:text-white'
+            }`}
+            title="Toggle AI-generated mode (V)"
+          >
+            {isGeneratedMode ? <Sparkles className="w-5 h-5" /> : <Layout className="w-5 h-5" />}
           </button>
 
           <button
@@ -321,6 +366,7 @@ export function Presenter({ deck, initialSlide = 0, themeCSS }: PresenterProps) 
         <div><kbd className="px-1.5 py-0.5 bg-white/10 rounded">F</kbd> Fullscreen</div>
         <div><kbd className="px-1.5 py-0.5 bg-white/10 rounded">N</kbd> Notes</div>
         <div><kbd className="px-1.5 py-0.5 bg-white/10 rounded">G</kbd> Overview</div>
+        <div><kbd className="px-1.5 py-0.5 bg-white/10 rounded">V</kbd> AI Mode</div>
       </motion.div>
     </div>
   );

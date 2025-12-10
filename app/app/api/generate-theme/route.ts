@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Extract Google Font names for loading
-    const fontMatches = css.matchAll(/--font-\w+:\s*'([^']+)'/g);
+    const fontMatches = Array.from(css.matchAll(/--font-\w+:\s*'([^']+)'/g));
     const fonts: string[] = [];
     for (const match of fontMatches) {
       const fontName = match[1];
@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate Google Fonts import URL
-    const uniqueFonts = [...new Set(fonts)];
+    const uniqueFonts = Array.from(new Set(fonts));
     const fontImport = uniqueFonts.length > 0
       ? `@import url('https://fonts.googleapis.com/css2?${uniqueFonts
           .map((f) => `family=${encodeURIComponent(f)}:wght@400;500;600;700`)

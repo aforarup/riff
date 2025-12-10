@@ -3,8 +3,18 @@
 // ============================================
 
 import { create } from 'zustand';
-import { AppState, Deck, ParsedDeck, ThemeConfig } from './types';
+import { persist } from 'zustand/middleware';
+import { AppState, Deck, ParsedDeck, ThemeConfig, SlideRenderMode, ImageStyleId } from './types';
 import { countReveals } from './parser';
+
+// Helper to get initial imageStyle from localStorage (for SSR safety)
+const getInitialImageStyle = (): ImageStyleId => {
+  if (typeof window !== 'undefined') {
+    const saved = localStorage.getItem('vibe-slides-image-style');
+    if (saved) return saved as ImageStyleId;
+  }
+  return 'none';
+};
 
 export const useStore = create<AppState>((set, get) => ({
   // Initial state
@@ -18,13 +28,18 @@ export const useStore = create<AppState>((set, get) => ({
     currentReveal: 0,
     isFullscreen: false,
     showSpeakerNotes: false,
+    renderMode: 'standard' as SlideRenderMode,
   },
 
   currentTheme: null,
   themePrompt: '',
 
+  imageStyle: 'none' as ImageStyleId, // Will be hydrated from localStorage
   imageCache: {},
   generatingImages: new Set(),
+
+  slideHtmlCache: {},
+  generatingSlides: new Set(),
 
   isEditorOpen: true,
   isLoading: false,
@@ -149,6 +164,35 @@ export const useStore = create<AppState>((set, get) => ({
       return { generatingImages: newSet };
     }),
 
+  setImageStyle: (style) => {
+    // Persist to localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('vibe-slides-image-style', style);
+    }
+    set({ imageStyle: style });
+  },
+
+  // Slide HTML cache actions
+  cacheSlideHtml: (key, html) =>
+    set((state) => ({
+      slideHtmlCache: { ...state.slideHtmlCache, [key]: html },
+    })),
+
+  getSlideHtml: (key) => get().slideHtmlCache[key],
+
+  setGeneratingSlide: (key, generating) =>
+    set((state) => {
+      const newSet = new Set(state.generatingSlides);
+      if (generating) {
+        newSet.add(key);
+      } else {
+        newSet.delete(key);
+      }
+      return { generatingSlides: newSet };
+    }),
+
+  isSlideGenerating: (key) => get().generatingSlides.has(key),
+
   // UI actions
   toggleEditor: () => set((state) => ({ isEditorOpen: !state.isEditorOpen })),
   toggleSpeakerNotes: () =>
@@ -163,6 +207,20 @@ export const useStore = create<AppState>((set, get) => ({
       presentation: {
         ...state.presentation,
         isFullscreen: !state.presentation.isFullscreen,
+      },
+    })),
+  toggleRenderMode: () =>
+    set((state) => ({
+      presentation: {
+        ...state.presentation,
+        renderMode: state.presentation.renderMode === 'standard' ? 'generated' : 'standard',
+      },
+    })),
+  setRenderMode: (mode: SlideRenderMode) =>
+    set((state) => ({
+      presentation: {
+        ...state.presentation,
+        renderMode: mode,
       },
     })),
 

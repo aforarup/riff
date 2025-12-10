@@ -47,8 +47,10 @@ export default async function PresentPage({ params, searchParams }: PageProps) {
   return (
     <PresenterClient
       deck={parsedDeck}
+      deckId={deckId}
       initialSlide={initialSlide}
       themeCSS={theme?.css}
+      themePrompt={theme?.prompt}
     />
   );
 }

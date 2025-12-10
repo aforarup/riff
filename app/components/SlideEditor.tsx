@@ -2,11 +2,12 @@
 
 // ============================================
 // VIBE SLIDES - Slide Editor Component
+// Minimal, Vercel-inspired design
 // ============================================
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Save, FileText, AlertCircle } from 'lucide-react';
+import { Save, FileText, Circle } from 'lucide-react';
 import { useStore } from '@/lib/store';
 import { parseSlideMarkdown } from '@/lib/parser';
 
@@ -22,15 +23,10 @@ export function SlideEditor({ content, onChange, onSave, isSaving = false }: Sli
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const { setParsedDeck } = useStore();
 
-  // Track the last saved content to detect changes
   const lastSavedContent = useRef(content);
-
-  // Only sync when content changes from external source (deck switch)
   const isExternalUpdate = useRef(false);
 
-  // Sync with external content only when switching decks
   useEffect(() => {
-    // If content changed externally (deck switch), reset
     if (content !== lastSavedContent.current && !hasUnsavedChanges) {
       setLocalContent(content);
       lastSavedContent.current = content;
@@ -38,7 +34,6 @@ export function SlideEditor({ content, onChange, onSave, isSaving = false }: Sli
     }
   }, [content, hasUnsavedChanges]);
 
-  // Parse on change (debounced)
   useEffect(() => {
     const timer = setTimeout(() => {
       try {
@@ -67,7 +62,6 @@ export function SlideEditor({ content, onChange, onSave, isSaving = false }: Sli
     setHasUnsavedChanges(false);
   }, [onSave, localContent]);
 
-  // Keyboard shortcut for save
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 's') {
@@ -80,30 +74,29 @@ export function SlideEditor({ content, onChange, onSave, isSaving = false }: Sli
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleSave]);
 
-  // Count slides
   const slideCount = (localContent.match(/^---$/gm) || []).length;
 
   return (
-    <div className="flex flex-col h-full bg-slate-900 rounded-xl overflow-hidden border border-slate-700/50">
+    <div className="flex flex-col h-full bg-background rounded-lg overflow-hidden border border-border">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 bg-slate-800/50 border-b border-slate-700/50">
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-border">
         <div className="flex items-center gap-3">
-          <FileText className="w-4 h-4 text-slate-400" />
-          <span className="text-sm font-medium text-slate-300">Slide Editor</span>
-          <span className="text-xs text-slate-500 bg-slate-700/50 px-2 py-0.5 rounded">
+          <FileText className="w-4 h-4 text-text-tertiary" />
+          <span className="text-sm text-text-secondary">Editor</span>
+          <span className="text-xs text-text-quaternary px-1.5 py-0.5 bg-surface rounded">
             {slideCount} slides
           </span>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           {hasUnsavedChanges && (
             <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="flex items-center gap-1 text-amber-400 text-xs"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex items-center gap-1.5 text-warning text-xs"
             >
-              <AlertCircle className="w-3 h-3" />
-              Unsaved
+              <Circle className="w-2 h-2 fill-current" />
+              <span>Unsaved</span>
             </motion.div>
           )}
 
@@ -111,16 +104,16 @@ export function SlideEditor({ content, onChange, onSave, isSaving = false }: Sli
             onClick={handleSave}
             disabled={isSaving || !hasUnsavedChanges}
             className={`
-              flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium
-              transition-all duration-200
+              flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-sm
+              transition-all duration-fast
               ${
                 hasUnsavedChanges
-                  ? 'bg-emerald-600 text-white hover:bg-emerald-500'
-                  : 'bg-slate-700 text-slate-400 cursor-not-allowed'
+                  ? 'bg-text-primary text-background hover:bg-text-secondary'
+                  : 'bg-surface text-text-quaternary cursor-not-allowed'
               }
             `}
           >
-            <Save className="w-4 h-4" />
+            <Save className="w-3.5 h-3.5" />
             {isSaving ? 'Saving...' : 'Save'}
           </button>
         </div>
@@ -133,9 +126,9 @@ export function SlideEditor({ content, onChange, onSave, isSaving = false }: Sli
           onChange={(e) => handleChange(e.target.value)}
           className="
             w-full h-full p-4
-            bg-transparent text-slate-200 font-mono text-sm
+            bg-transparent text-text-primary font-mono text-sm
             resize-none outline-none
-            placeholder:text-slate-600
+            placeholder:text-text-quaternary
             leading-relaxed
           "
           placeholder={`# Your Presentation Title
@@ -160,13 +153,14 @@ export function SlideEditor({ content, onChange, onSave, isSaving = false }: Sli
         />
       </div>
 
-      {/* Footer with syntax hint */}
-      <div className="px-4 py-2 bg-slate-800/30 border-t border-slate-700/50">
-        <p className="text-xs text-slate-500">
-          <span className="text-slate-400">Tip:</span> Use{' '}
-          <code className="bg-slate-700/50 px-1 rounded">---</code> to separate slides,{' '}
-          <code className="bg-slate-700/50 px-1 rounded">**pause**</code> for reveals,{' '}
-          <code className="bg-slate-700/50 px-1 rounded">`text`</code> to highlight
+      {/* Footer */}
+      <div className="px-4 py-2 border-t border-border">
+        <p className="text-xs text-text-quaternary">
+          <code className="text-text-tertiary">---</code> separate slides
+          <span className="mx-2 text-border">·</span>
+          <code className="text-text-tertiary">**pause**</code> for reveals
+          <span className="mx-2 text-border">·</span>
+          <code className="text-text-tertiary">`text`</code> to highlight
         </p>
       </div>
     </div>

@@ -5,15 +5,15 @@
 // ============================================
 
 import { useEffect, useState, useCallback } from 'react';
-import { motion } from 'framer-motion';
-import { Sparkles, PanelLeftClose, PanelLeft } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { PanelLeftClose, PanelLeft, X } from 'lucide-react';
 import { useStore } from '@/lib/store';
 import { parseSlideMarkdown } from '@/lib/parser';
 import { DeckManager } from '@/components/DeckManager';
 import { SlideEditor } from '@/components/SlideEditor';
 import { SlidePreview } from '@/components/SlidePreview';
 import { ThemeCustomizer } from '@/components/ThemeCustomizer';
-import { Deck } from '@/lib/types';
+import { ImageStyleSelector } from '@/components/ImageStyleSelector';
 
 export default function Home() {
   const {
@@ -32,9 +32,17 @@ export default function Home() {
     setError,
     themePrompt,
     setThemePrompt,
-    currentTheme,
     setTheme,
+    setImageStyle,
   } = useStore();
+
+  // Hydrate imageStyle from localStorage on mount
+  useEffect(() => {
+    const savedStyle = localStorage.getItem('vibe-slides-image-style');
+    if (savedStyle) {
+      setImageStyle(savedStyle as any);
+    }
+  }, [setImageStyle]);
 
   const [isSaving, setIsSaving] = useState(false);
   const [isGeneratingTheme, setIsGeneratingTheme] = useState(false);
@@ -49,7 +57,6 @@ export default function Home() {
         const data = await response.json();
         setDecks(data.decks || []);
 
-        // Auto-select first deck if available
         if (data.decks?.length > 0 && !currentDeckId) {
           await loadDeck(data.decks[0].id);
         }
@@ -64,26 +71,18 @@ export default function Home() {
     loadDecks();
   }, []);
 
-  // Load a specific deck
   const loadDeck = async (id: string) => {
     setLoading(true);
     setError(null);
     try {
-      console.log('Loading deck:', id);
       const response = await fetch(`/api/decks/${encodeURIComponent(id)}`);
-
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Deck not found');
       }
 
       const data = await response.json();
-      console.log('Loaded deck data:', data.deck?.id);
-
-      // Use the ID from the response (normalized)
       setCurrentDeck(data.deck.id, data.content);
-
-      // Parse the deck
       const parsed = parseSlideMarkdown(data.content);
       setParsedDeck(parsed);
     } catch (err) {
@@ -94,7 +93,6 @@ export default function Home() {
     }
   };
 
-  // Create a new deck
   const createDeck = async (name: string) => {
     try {
       const response = await fetch('/api/decks', {
@@ -105,12 +103,9 @@ export default function Home() {
 
       const data = await response.json();
       if (data.deck) {
-        // Refresh deck list to get the normalized ID
         const listResponse = await fetch('/api/decks');
         const listData = await listResponse.json();
         setDecks(listData.decks || []);
-
-        // Load the newly created deck using the ID returned from the API
         await loadDeck(data.deck.id);
       }
     } catch (err) {
@@ -119,22 +114,17 @@ export default function Home() {
     }
   };
 
-  // Delete a deck
   const deleteDeck = async (id: string) => {
     try {
-      console.log('Deleting deck:', id);
       const response = await fetch(`/api/decks/${encodeURIComponent(id)}`, {
         method: 'DELETE',
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to delete');
-      }
+      if (!response.ok) throw new Error('Failed to delete');
 
       const newDecks = decks.filter((d) => d.id !== id);
       setDecks(newDecks);
 
-      // If we deleted the current deck, switch to another
       if (id === currentDeckId) {
         if (newDecks.length > 0) {
           await loadDeck(newDecks[0].id);
@@ -149,24 +139,18 @@ export default function Home() {
     }
   };
 
-  // Save current deck
   const saveDeck = async () => {
     if (!currentDeckId) return;
 
     setIsSaving(true);
     try {
-      console.log('Saving deck:', currentDeckId);
       const response = await fetch(`/api/decks/${encodeURIComponent(currentDeckId)}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: currentDeckContent }),
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to save');
-      }
-
-      console.log('Deck saved successfully');
+      if (!response.ok) throw new Error('Failed to save');
     } catch (err) {
       setError('Failed to save deck');
       console.error('Save error:', err);
@@ -175,7 +159,6 @@ export default function Home() {
     }
   };
 
-  // Generate theme from prompt
   const generateTheme = async (prompt: string) => {
     setIsGeneratingTheme(true);
     try {
@@ -205,7 +188,6 @@ export default function Home() {
     }
   };
 
-  // Handle content change
   const handleContentChange = useCallback(
     (content: string) => {
       updateDeckContent(content);
@@ -214,25 +196,34 @@ export default function Home() {
   );
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
-      {/* Inject custom theme CSS */}
+    <div className="min-h-screen bg-background text-text-primary">
+      {/* Custom theme CSS */}
       {themeCSS && <style dangerouslySetInnerHTML={{ __html: themeCSS }} />}
 
       {/* Header */}
-      <header className="sticky top-0 z-30 bg-slate-950/80 backdrop-blur-md border-b border-slate-800/50">
-        <div className="flex items-center justify-between px-4 py-3">
-          {/* Logo & Deck selector */}
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <div className="p-2 bg-gradient-to-br from-emerald-500 to-cyan-500 rounded-xl">
-                <Sparkles className="w-5 h-5 text-white" />
-              </div>
-              <span className="text-xl font-bold bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
+      <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-sm border-b border-border">
+        <div className="flex items-center justify-between h-14 px-4">
+          {/* Left: Logo & Deck selector */}
+          <div className="flex items-center gap-6">
+            {/* Logo */}
+            <div className="flex items-center gap-2.5">
+              <svg
+                className="w-6 h-6 text-text-primary"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+              >
+                <path d="M4 4h16v16H4z" />
+                <path d="M4 9h16" />
+                <path d="M9 4v16" />
+              </svg>
+              <span className="text-sm font-medium tracking-tight">
                 Vibe Slides
               </span>
             </div>
 
-            <div className="w-px h-8 bg-slate-700/50" />
+            <div className="h-4 w-px bg-border" />
 
             <DeckManager
               decks={decks}
@@ -244,8 +235,10 @@ export default function Home() {
             />
           </div>
 
-          {/* Actions */}
-          <div className="flex items-center gap-3">
+          {/* Right: Actions */}
+          <div className="flex items-center gap-2">
+            <ImageStyleSelector />
+
             <ThemeCustomizer
               currentPrompt={themePrompt}
               onGenerate={generateTheme}
@@ -254,13 +247,13 @@ export default function Home() {
 
             <button
               onClick={toggleEditor}
-              className="p-2.5 hover:bg-slate-800 rounded-xl text-slate-400 hover:text-slate-200 transition-colors"
+              className="p-2 hover:bg-surface rounded-md text-text-secondary hover:text-text-primary transition-colors"
               title={isEditorOpen ? 'Hide editor' : 'Show editor'}
             >
               {isEditorOpen ? (
-                <PanelLeftClose className="w-5 h-5" />
+                <PanelLeftClose className="w-4 h-4" />
               ) : (
-                <PanelLeft className="w-5 h-5" />
+                <PanelLeft className="w-4 h-4" />
               )}
             </button>
           </div>
@@ -268,37 +261,50 @@ export default function Home() {
       </header>
 
       {/* Main content */}
-      <main className="flex h-[calc(100vh-65px)]">
+      <main className="flex h-[calc(100vh-57px)]">
         {/* Editor panel */}
-        {isEditorOpen && (
-          <motion.div
-            initial={{ width: 0, opacity: 0 }}
-            animate={{ width: '40%', opacity: 1 }}
-            exit={{ width: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="h-full border-r border-slate-800/50 overflow-hidden"
-          >
-            <div className="h-full p-4">
-              <SlideEditor
-                content={currentDeckContent}
-                onChange={handleContentChange}
-                onSave={saveDeck}
-                isSaving={isSaving}
-              />
-            </div>
-          </motion.div>
-        )}
+        <AnimatePresence mode="wait">
+          {isEditorOpen && (
+            <motion.div
+              initial={{ width: 0, opacity: 0 }}
+              animate={{ width: '40%', opacity: 1 }}
+              exit={{ width: 0, opacity: 0 }}
+              transition={{ duration: 0.15, ease: 'easeOut' }}
+              className="h-full border-r border-border overflow-hidden"
+            >
+              <div className="h-full p-4">
+                <SlideEditor
+                  content={currentDeckContent}
+                  onChange={handleContentChange}
+                  onSave={saveDeck}
+                  isSaving={isSaving}
+                />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Preview panel */}
-        <div className="flex-1 h-full overflow-hidden">
+        <div className="flex-1 h-full overflow-hidden bg-background-secondary">
           <div className="h-full p-4">
             {currentDeckId ? (
               <SlidePreview deckId={currentDeckId} />
             ) : (
-              <div className="flex flex-col items-center justify-center h-full text-slate-500">
-                <Sparkles className="w-16 h-16 mb-4 opacity-30" />
-                <p className="text-xl font-medium">No deck selected</p>
-                <p className="text-sm mt-2">Create a new deck or select an existing one</p>
+              <div className="flex flex-col items-center justify-center h-full text-text-tertiary">
+                <svg
+                  className="w-12 h-12 mb-4 opacity-30"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1"
+                >
+                  <rect x="3" y="3" width="18" height="18" rx="2" />
+                  <path d="M3 9h18" />
+                </svg>
+                <p className="text-sm font-medium">No deck selected</p>
+                <p className="text-xs mt-1 text-text-quaternary">
+                  Create a new deck or select an existing one
+                </p>
               </div>
             )}
           </div>
@@ -306,24 +312,24 @@ export default function Home() {
       </main>
 
       {/* Error toast */}
-      {error && (
-        <motion.div
-          initial={{ opacity: 0, y: 50 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 50 }}
-          className="fixed bottom-4 right-4 px-4 py-3 bg-red-500/90 text-white rounded-xl shadow-lg"
-        >
-          <div className="flex items-center gap-3">
-            <span>{error}</span>
+      <AnimatePresence>
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="fixed bottom-4 right-4 flex items-center gap-3 px-4 py-3 bg-surface border border-error/20 rounded-lg"
+          >
+            <span className="text-sm text-error">{error}</span>
             <button
               onClick={() => setError(null)}
-              className="text-white/70 hover:text-white"
+              className="p-1 hover:bg-surface-hover rounded text-text-tertiary hover:text-text-primary transition-colors"
             >
-              Dismiss
+              <X className="w-4 h-4" />
             </button>
-          </div>
-        </motion.div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
