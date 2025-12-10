@@ -202,6 +202,27 @@ function ElementRenderer({ element, index, isPresenting }: ElementRendererProps)
           </blockquote>
         );
 
+      case 'list':
+        const ListTag = element.metadata?.listType === 'ordered' ? 'ol' : 'ul';
+        const listItems = element.metadata?.listItems || [];
+        return (
+          <ListTag
+            className={`
+              font-body text-slide-muted
+              ${isPresenting ? 'text-xl md:text-2xl lg:text-3xl' : 'text-base md:text-lg'}
+              leading-relaxed space-y-3
+              ${element.metadata?.listType === 'ordered' ? 'list-decimal' : 'list-disc'}
+              list-inside
+            `}
+          >
+            {listItems.map((item, idx) => (
+              <li key={idx} className="pl-2">
+                <HighlightedText text={item} />
+              </li>
+            ))}
+          </ListTag>
+        );
+
       default:
         return <span>{element.content}</span>;
     }
@@ -284,6 +305,27 @@ function SectionElementRenderer({ element, index, isPresenting }: ElementRendere
           >
             <HighlightedText text={element.content} />
           </p>
+        );
+
+      case 'list':
+        const SectionListTag = element.metadata?.listType === 'ordered' ? 'ol' : 'ul';
+        const sectionListItems = element.metadata?.listItems || [];
+        return (
+          <SectionListTag
+            className={`
+              font-body text-slide-muted
+              ${isPresenting ? 'text-2xl md:text-3xl lg:text-4xl' : 'text-lg md:text-xl'}
+              leading-relaxed space-y-4 mt-8 text-left
+              ${element.metadata?.listType === 'ordered' ? 'list-decimal' : 'list-disc'}
+              list-inside
+            `}
+          >
+            {sectionListItems.map((item, idx) => (
+              <li key={idx} className="pl-2">
+                <HighlightedText text={item} />
+              </li>
+            ))}
+          </SectionListTag>
         );
 
       default:

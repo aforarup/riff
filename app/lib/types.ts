@@ -97,7 +97,8 @@ export type SlideElementType =
   | 'pause'
   | 'code'
   | 'quote'
-  | 'highlight';
+  | 'highlight'
+  | 'list';
 
 export interface SlideElement {
   type: SlideElementType;
@@ -107,6 +108,8 @@ export interface SlideElement {
     language?: string; // for code blocks
     imageUrl?: string; // cached image URL
     imageStatus?: 'pending' | 'generating' | 'ready' | 'error';
+    listType?: 'ordered' | 'unordered'; // for list elements
+    listItems?: string[]; // individual list items
   };
 }
 

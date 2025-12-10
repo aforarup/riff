@@ -1,15 +1,16 @@
 # Session 01: Section Slides, Theme System, and System Prompt Exposure
 
 **Date:** December 10, 2025
-**Focus:** Quality-of-life improvements and user control over AI generation
+**Focus:** Quality-of-life improvements, extended markdown support, and user control over AI generation
 
 ---
 
 ## Overview
 
-This session focused on two main areas:
+This session focused on three main areas:
 1. **Visual Enhancements** - Section header slides with distinctive styling
-2. **User Control** - Exposing AI system prompts for theme and slide generation
+2. **Extended Markdown** - Support for ordered/unordered lists
+3. **User Control** - Exposing AI system prompts for theme and slide generation
 
 ---
 
@@ -47,7 +48,40 @@ This session focused on two main areas:
 
 ---
 
-### 2. Background Color for Image Generation
+### 2. Ordered and Unordered List Support
+
+**Problem:** Markdown lists weren't supported, limiting content formatting options.
+
+**Solution:** Added full list parsing and rendering for both ordered (`1. item`) and unordered (`- item`, `* item`) lists.
+
+**Implementation:**
+- Added `list` type to `SlideElementType` (`lib/types.ts:101`)
+- Added `listType` and `listItems` metadata fields (`lib/types.ts:111-112`)
+- Parser collects consecutive list items into single list elements
+- Handles switching between ordered/unordered lists
+- Both `ElementRenderer` and `SectionElementRenderer` render lists with proper styling
+
+**Markdown syntax:**
+```markdown
+# Unordered list
+- First item
+- Second item
+* Third item (asterisk also works)
+
+# Ordered list
+1. First step
+2. Second step
+3. Third step
+```
+
+**Files Modified:**
+- `lib/types.ts` - Added `list` type and list metadata
+- `lib/parser.ts` - List detection and grouping logic
+- `components/SlideRenderer.tsx` - List rendering in both standard and section modes
+
+---
+
+### 3. Background Color for Image Generation (continued from prior session)
 
 **Problem:** AI-generated images didn't account for slide background colors, causing visual clashes.
 
@@ -273,6 +307,27 @@ Required for the `cn()` utility function used in RetroGrid component.
 
 ---
 
+## Supported Markdown Format
+
+```markdown
+---                          # Slide separator
+# Title                      # Main headline (h1)
+## Heading                   # Secondary heading (h2)
+### Subtitle                 # Tertiary text (h3)
+Regular text                 # Body text (no prefix)
+- Item or * Item             # Unordered list
+1. Item, 2. Item             # Ordered list
+[image: description]         # Image placeholder
+**pause**                    # Animation/transition beat
+> Speaker note               # Speaker notes (not shown)
+`keyword`                    # Highlighted word (inline)
+```lang\ncode\n```           # Code block
+<!-- comment -->             # Section markers (metadata)
+[section]                    # Section header slide (special styling)
+```
+
+---
+
 ## Testing Notes
 
 - Build passes: `npm run build` succeeds
@@ -280,3 +335,4 @@ Required for the `cn()` utility function used in RetroGrid component.
 - Theme CSS applies in both preview and presenter modes
 - Custom prompts persist across page refreshes (localStorage)
 - Reset to default clears both theme and custom prompts
+- Lists render correctly in both standard and presentation modes

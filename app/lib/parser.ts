@@ -13,12 +13,16 @@ import { Slide, SlideElement, ParsedDeck, DeckMetadata } from './types';
  * # Title                      # Main headline (h1)
  * ## Heading                   # Secondary heading (h2)
  * ### Subtitle                 # Tertiary text (h3)
+ * Regular text                 # Body text (no prefix)
+ * - Item or * Item             # Unordered list
+ * 1. Item, 2. Item             # Ordered list
  * [image: description]         # Image placeholder
  * **pause**                    # Animation/transition beat
  * > Speaker note               # Speaker notes (not shown)
  * `keyword`                    # Highlighted word (inline)
  * ```lang\ncode\n```          # Code block
  * <!-- comment -->             # Section markers (metadata)
+ * [section]                    # Section header slide (special styling)
  */
 
 export function parseSlideMarkdown(markdown: string): ParsedDeck {
@@ -34,7 +38,14 @@ export function parseSlideMarkdown(markdown: string): ParsedDeck {
   let codeBlockContent = '';
   let codeBlockLang = '';
 
+  // List tracking
+  let inList = false;
+  let listType: 'ordered' | 'unordered' | null = null;
+  let listItems: string[] = [];
+  let listRevealOrder = 0;
+
   const finalizeSlide = () => {
+    finalizeList(); // Finalize any pending list before slide ends
     if (currentSlide && currentSlide.elements.length > 0) {
       slides.push(currentSlide);
     }
@@ -62,6 +73,24 @@ export function parseSlideMarkdown(markdown: string): ParsedDeck {
       revealOrder,
       metadata,
     });
+  };
+
+  const finalizeList = () => {
+    if (inList && listItems.length > 0) {
+      if (!currentSlide) createNewSlide();
+      currentSlide!.elements.push({
+        type: 'list',
+        content: listItems.join('\n'),
+        revealOrder: listRevealOrder,
+        metadata: {
+          listType: listType!,
+          listItems: [...listItems],
+        },
+      });
+      inList = false;
+      listType = null;
+      listItems = [];
+    }
   };
 
   for (let i = 0; i < lines.length; i++) {
@@ -135,6 +164,7 @@ export function parseSlideMarkdown(markdown: string): ParsedDeck {
     // Image placeholder
     const imageMatch = trimmed.match(/^\[image:\s*(.+?)\]$/);
     if (imageMatch) {
+      finalizeList(); // End any pending list
       const description = imageMatch[1];
       if (!currentSlide) createNewSlide();
       currentSlide!.imageDescriptions.push(description);
@@ -144,6 +174,7 @@ export function parseSlideMarkdown(markdown: string): ParsedDeck {
 
     // Title (h1)
     if (trimmed.startsWith('# ') && !trimmed.startsWith('## ')) {
+      finalizeList(); // End any pending list
       const content = trimmed.slice(2);
       addElement('title', processInlineFormatting(content));
       continue;
@@ -151,6 +182,7 @@ export function parseSlideMarkdown(markdown: string): ParsedDeck {
 
     // Heading (h2)
     if (trimmed.startsWith('## ')) {
+      finalizeList(); // End any pending list
       const content = trimmed.slice(3);
       addElement('subtitle', processInlineFormatting(content));
       continue;
@@ -158,9 +190,57 @@ export function parseSlideMarkdown(markdown: string): ParsedDeck {
 
     // Subtitle (h3)
     if (trimmed.startsWith('### ')) {
+      finalizeList(); // End any pending list
       const content = trimmed.slice(4);
       addElement('text', processInlineFormatting(content));
       continue;
+    }
+
+    // Ordered list item (1. item, 2. item, etc.)
+    const orderedMatch = trimmed.match(/^\d+\.\s+(.+)$/);
+    if (orderedMatch) {
+      const itemContent = orderedMatch[1];
+      if (!inList) {
+        inList = true;
+        listType = 'ordered';
+        listRevealOrder = revealOrder;
+        listItems = [];
+      } else if (listType !== 'ordered') {
+        // Different list type, finalize previous list
+        finalizeList();
+        inList = true;
+        listType = 'ordered';
+        listRevealOrder = revealOrder;
+        listItems = [];
+      }
+      listItems.push(processInlineFormatting(itemContent));
+      continue;
+    }
+
+    // Unordered list item (- item or * item)
+    const unorderedMatch = trimmed.match(/^[-*]\s+(.+)$/);
+    if (unorderedMatch) {
+      const itemContent = unorderedMatch[1];
+      if (!inList) {
+        inList = true;
+        listType = 'unordered';
+        listRevealOrder = revealOrder;
+        listItems = [];
+      } else if (listType !== 'unordered') {
+        // Different list type, finalize previous list
+        finalizeList();
+        inList = true;
+        listType = 'unordered';
+        listRevealOrder = revealOrder;
+        listItems = [];
+      }
+      listItems.push(processInlineFormatting(itemContent));
+      continue;
+    }
+
+    // If we get here and we're in a list, finalize it
+    if (inList) {
+      finalizeList();
     }
 
     // Regular text (anything else)
@@ -260,6 +340,17 @@ export function deckToMarkdown(deck: ParsedDeck): string {
             lines.push(`\`\`\`${element.metadata?.language || ''}`);
             lines.push(element.content);
             lines.push('```');
+            break;
+          case 'list':
+            const listItems = element.metadata?.listItems || [];
+            const isOrdered = element.metadata?.listType === 'ordered';
+            listItems.forEach((item, idx) => {
+              if (isOrdered) {
+                lines.push(`${idx + 1}. ${item}`);
+              } else {
+                lines.push(`- ${item}`);
+              }
+            });
             break;
         }
         lines.push('');
