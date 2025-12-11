@@ -1,5 +1,5 @@
 // ============================================
-// VIBE SLIDES - Presenter Mode Page
+// RIFF - Presenter Mode Page
 // ============================================
 
 import { Metadata } from 'next';
@@ -19,8 +19,8 @@ interface PageProps {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const deckId = decodeURIComponent(params.id);
   return {
-    title: `${deckId} - Vibe Slides`,
-    description: 'Presenting with Vibe Slides',
+    title: `${deckId} - Riff`,
+    description: 'Presenting with Riff',
   };
 }
 

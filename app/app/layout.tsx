@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Vibe Slides',
+  title: 'Riff',
   description: 'AI-powered presentation editor with prompt-driven theming',
 };
 

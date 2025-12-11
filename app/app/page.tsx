@@ -270,7 +270,7 @@ export default function Home() {
                 <path d="M9 4v16" />
               </svg>
               <span className="text-sm font-medium tracking-tight">
-                Vibe Slides
+                Riff
               </span>
             </div>
 
