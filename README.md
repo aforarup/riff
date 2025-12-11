@@ -65,13 +65,17 @@ Add your API keys:
 
 ```env
 # Vercel Blob Storage (get from Vercel dashboard)
-BLOB_READ_WRITE_TOKEN=vercel_blob_rw_xxxxx
+BLOB_READ_WRITE_TOKEN=your_vercel_blob_token_here
 
 # Google Gemini API (for image generation)
-GOOGLE_GENERATIVE_AI_API_KEY=your_gemini_key
+GOOGLE_GENERATIVE_AI_API_KEY=your_gemini_api_key_here
 
 # Anthropic API (for theme generation)
-ANTHROPIC_API_KEY=your_anthropic_key
+ANTHROPIC_API_KEY=your_anthropic_api_key_here
+
+# Vercel AI Gateway (optional, for slide generation)
+AI_GATEWAY_API_KEY=your_ai_gateway_key_here
+AI_GATEWAY_MODEL=your_model_id_here
 ```
 
 ### 3. Run development server
