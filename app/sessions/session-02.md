@@ -211,6 +211,113 @@ Each model tried in sequence; first success wins.
 
 ---
 
+## 7. Slide Generator (HTML/CSS) Fix
+
+### Problems
+1. Generated HTML used `100vw/100vh` but rendered inside a container → overflow
+2. No theme integration - hardcoded colors ignored CSS variables
+3. LLM went "wild" with inconsistent designs across slides
+4. Just converted markdown to HTML without improving layout
+
+### Solution
+
+#### Force Containment (Parent-side CSS)
+Added `!important` overrides in `GeneratedSlide.tsx`:
+```css
+.generated-slide-container > * {
+  max-width: 100% !important;
+  max-height: 100% !important;
+  position: absolute !important;
+  inset: 0 !important;
+  overflow: hidden !important;
+}
+```
+
+#### New System Prompt (Design-Focused)
+Rewrote `DEFAULT_SLIDE_SYSTEM_PROMPT` to:
+- Use `width: 100%; height: 100%` (not viewport units)
+- **MUST use CSS variables** for colors/fonts
+- Actually DESIGN layouts (not just convert markdown)
+- 8 layout templates provided (Title + Points, Two Column, Big Statement, etc.)
+- Animation classes with directional entrances
+
+#### Layout Ideas in Prompt
+| Layout | Use Case |
+|--------|----------|
+| Title Slide | Opening slides |
+| Title + Points | Title left, bullets right |
+| Big Statement | Single impactful phrase |
+| Quote | Large quotes with attribution |
+| Two Column | Balanced content split |
+| Title + Grid | Title above 2x2 content |
+
+#### Animation Classes
+```css
+.from-left    /* Slide in from left */
+.from-right   /* Slide in from right */
+.from-bottom  /* Slide up from bottom */
+.scale-in     /* Scale up entrance */
+```
+
+### Files Modified
+- `lib/prompts.ts` - Complete rewrite of `DEFAULT_SLIDE_SYSTEM_PROMPT`
+- `components/GeneratedSlide.tsx` - Added theme CSS injection + containment
+
+---
+
+## 8. Image Slots System (3-Slot Architecture)
+
+### Problem
+- All image types shared same cache key, overwrote each other
+- On reload, AI-generated image took priority over uploaded/restyled
+- No way to toggle between different versions
+
+### Solution: 3 Separate Slots
+
+#### Cache Key Format
+| Slot | Cache Key | Color |
+|------|-----------|-------|
+| Generated | `gen:${styleId}:${description}` | Emerald |
+| Uploaded | `upload:${description}` | Blue |
+| Restyled | `restyle:${description}` | Purple |
+
+#### Load Priority
+On page load: **Restyled → Uploaded → Generated**
+
+First one found becomes active slot.
+
+#### Toggle UI
+- Badge shows current slot (AI / Upload / Styled)
+- If multiple slots exist, badge shows **Layers icon + count**
+- Click badge to open **slot picker dropdown**
+- Switch between any available slot instantly
+
+#### Behavior
+- **Generate** → saves to `generated` slot
+- **Upload** → saves to `uploaded` slot
+- **Restyle** → saves to `restyled` slot
+- All 3 coexist - none overwrite each other
+
+### Visual
+```
+┌─────────────────────────────────┐
+│ [Styled (3)] ←── click to toggle│
+│         [Image Here]            │
+│  [Generate] [Upload] [Restyle]  │
+└─────────────────────────────────┘
+        ↓ click badge
+┌─────────────┐
+│ ● AI        │
+│ ● Upload    │ ← picker dropdown
+│ ● Styled ✓  │
+└─────────────┘
+```
+
+### Files Modified
+- `components/ImagePlaceholder.tsx` - Complete rewrite with slot system
+
+---
+
 ## Files Changed Summary
 
 ### New Files
@@ -220,4 +327,6 @@ Each model tried in sequence; first success wins.
 
 ### Modified Files
 - `app/api/generate-image/route.ts` - Gemini 3 upgrade + bg color fix
-- `app/components/ImagePlaceholder.tsx` - Full rewrite with new features
+- `app/components/ImagePlaceholder.tsx` - Full rewrite with 3-slot system
+- `app/components/GeneratedSlide.tsx` - Theme CSS injection + containment
+- `app/lib/prompts.ts` - Rewritten slide generation prompt

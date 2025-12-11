@@ -38,6 +38,7 @@ export function GeneratedSlide({
     cacheSlideHtml,
     setGeneratingSlide,
     customSlideSystemPrompt,
+    currentTheme,
   } = useStore();
 
   // Convert slide to markdown for API submission
@@ -267,6 +268,11 @@ export function GeneratedSlide({
         ${isPresenting ? '' : 'rounded-lg'}
       `}
     >
+      {/* Inject theme CSS variables */}
+      {currentTheme?.css && (
+        <style dangerouslySetInnerHTML={{ __html: currentTheme.css }} />
+      )}
+
       {/* Regenerate button (only in editor mode) */}
       {!isPresenting && (
         <button
@@ -281,9 +287,46 @@ export function GeneratedSlide({
         </button>
       )}
 
+      {/* Force containment - don't trust LLM's sizing */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        .generated-slide-container {
+          position: absolute;
+          inset: 0;
+          overflow: hidden;
+          contain: strict;
+        }
+        .generated-slide-container > * {
+          max-width: 100% !important;
+          max-height: 100% !important;
+          width: 100% !important;
+          height: 100% !important;
+          position: absolute !important;
+          inset: 0 !important;
+          overflow: hidden !important;
+        }
+        .generated-slide-container .slide {
+          width: 100% !important;
+          height: 100% !important;
+          max-width: 100% !important;
+          max-height: 100% !important;
+          position: relative !important;
+          overflow: hidden !important;
+        }
+      `}} />
+
       {/* Slide content via dangerouslySetInnerHTML */}
       <div
-        className="w-full h-full"
+        className="generated-slide-container w-full h-full"
+        style={{
+          // Ensure CSS variables are available even without custom theme
+          ['--slide-bg' as string]: 'var(--slide-bg, #0a0a0a)',
+          ['--slide-text' as string]: 'var(--slide-text, #fafafa)',
+          ['--slide-accent' as string]: 'var(--slide-accent, #3b82f6)',
+          ['--slide-muted' as string]: 'var(--slide-muted, #a1a1aa)',
+          ['--slide-surface' as string]: 'var(--slide-surface, #18181b)',
+          ['--font-display' as string]: 'var(--font-display, system-ui, sans-serif)',
+          ['--font-body' as string]: 'var(--font-body, system-ui, sans-serif)',
+        }}
         dangerouslySetInnerHTML={{ __html: cachedHtml }}
       />
 

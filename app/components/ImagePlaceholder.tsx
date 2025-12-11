@@ -2,10 +2,10 @@
 
 // ============================================
 // VIBE SLIDES - Image Placeholder Component
-// With upload, restyle, and restore functionality
+// With 3 image slots: Generated, Uploaded, Restyled
 // ============================================
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ImageIcon,
@@ -14,9 +14,8 @@ import {
   Sparkles,
   Upload,
   Wand2,
-  Undo2,
   X,
-  Palette,
+  Layers,
 } from 'lucide-react';
 import { useStore } from '@/lib/store';
 import { IMAGE_STYLE_PRESETS } from '@/lib/types';
@@ -28,10 +27,13 @@ interface ImagePlaceholderProps {
   isPresenting?: boolean;
 }
 
-interface ImageMetadata {
-  url: string;
-  originalUrl?: string; // For restore after restyle
-  source: 'generated' | 'uploaded' | 'restyled';
+// Three separate slots for images
+type ImageSlot = 'generated' | 'uploaded' | 'restyled';
+
+interface ImageSlots {
+  generated?: string;
+  uploaded?: string;
+  restyled?: string;
 }
 
 export function ImagePlaceholder({
@@ -40,17 +42,20 @@ export function ImagePlaceholder({
   status = 'pending',
   isPresenting = false,
 }: ImagePlaceholderProps) {
-  const [imageData, setImageData] = useState<ImageMetadata | null>(
-    imageUrl ? { url: imageUrl, source: 'generated' } : null
-  );
+  // Image slots - each can have its own URL
+  const [slots, setSlots] = useState<ImageSlots>({});
+  const [activeSlot, setActiveSlot] = useState<ImageSlot | null>(null);
+
   const [isGenerating, setIsGenerating] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isRestyling, setIsRestyling] = useState(false);
   const [isCheckingCache, setIsCheckingCache] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showRestyleModal, setShowRestyleModal] = useState(false);
+  const [showSlotPicker, setShowSlotPicker] = useState(false);
   const [customPrompt, setCustomPrompt] = useState('');
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
+
   const cacheChecked = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -62,53 +67,110 @@ export function ImagePlaceholder({
     return getComputedStyle(document.documentElement).getPropertyValue('--slide-bg').trim() || '#0a0a0a';
   };
 
-  // Cache key for storing/retrieving images
-  const cacheKey = imageStyle && imageStyle !== 'none'
-    ? `${imageStyle}:${description}`
-    : description;
+  // Cache keys for each slot
+  const getCacheKey = useCallback((slot: ImageSlot) => {
+    switch (slot) {
+      case 'generated':
+        return imageStyle && imageStyle !== 'none'
+          ? `gen:${imageStyle}:${description}`
+          : `gen:${description}`;
+      case 'uploaded':
+        return `upload:${description}`;
+      case 'restyled':
+        return `restyle:${description}`;
+    }
+  }, [description, imageStyle]);
 
-  // Check if we have a cached URL
-  const cachedUrl = imageCache[cacheKey] || imageData?.url;
+  // Get active image URL
+  const activeImageUrl = activeSlot ? slots[activeSlot] : null;
 
-  // Auto-check server cache on mount
+  // Count available slots
+  const availableSlots = Object.entries(slots).filter(([_, url]) => url).map(([slot]) => slot as ImageSlot);
+
+  // Auto-check all slot caches on mount
   useEffect(() => {
-    if (cacheChecked.current || cachedUrl) {
+    if (cacheChecked.current) {
       setIsCheckingCache(false);
       return;
     }
 
     cacheChecked.current = true;
 
-    const checkCache = async () => {
-      try {
-        const savedStyle = typeof window !== 'undefined'
-          ? localStorage.getItem('vibe-slides-image-style') || 'none'
-          : 'none';
+    const checkAllCaches = async () => {
+      const savedStyle = typeof window !== 'undefined'
+        ? localStorage.getItem('vibe-slides-image-style') || 'none'
+        : 'none';
 
-        const response = await fetch('/api/image-cache?' + new URLSearchParams({
-          description,
-          styleId: savedStyle,
-        }));
+      const newSlots: ImageSlots = {};
 
-        if (response.ok) {
-          const data = await response.json();
-          if (data.url) {
-            const actualCacheKey = savedStyle && savedStyle !== 'none'
+      // Check each slot's cache (priority: restyled → uploaded → generated)
+      const slotOrder: ImageSlot[] = ['restyled', 'uploaded', 'generated'];
+
+      for (const slot of slotOrder) {
+        let cacheKey: string;
+        let lookupKey: string;
+
+        switch (slot) {
+          case 'generated':
+            cacheKey = savedStyle && savedStyle !== 'none'
+              ? `gen:${savedStyle}:${description}`
+              : `gen:${description}`;
+            lookupKey = savedStyle && savedStyle !== 'none'
               ? `${savedStyle}:${description}`
               : description;
-            setImageData({ url: data.url, source: 'generated' });
-            cacheImage(actualCacheKey, data.url);
-          }
+            break;
+          case 'uploaded':
+            cacheKey = `upload:${description}`;
+            lookupKey = `upload:${description}`;
+            break;
+          case 'restyled':
+            cacheKey = `restyle:${description}`;
+            lookupKey = `restyle:${description}`;
+            break;
         }
-      } catch (err) {
-        console.error('Cache check failed:', err);
-      } finally {
-        setIsCheckingCache(false);
+
+        // Check local cache first
+        const localCached = imageCache[cacheKey];
+        if (localCached) {
+          newSlots[slot] = localCached;
+          continue;
+        }
+
+        // Check server cache
+        try {
+          const response = await fetch('/api/image-cache?' + new URLSearchParams({
+            description: slot === 'generated' ? description : `${slot}:${description}`,
+            styleId: slot === 'generated' ? savedStyle : 'none',
+          }));
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.url) {
+              newSlots[slot] = data.url;
+              cacheImage(cacheKey, data.url);
+            }
+          }
+        } catch (err) {
+          console.error(`Cache check failed for ${slot}:`, err);
+        }
       }
+
+      setSlots(newSlots);
+
+      // Set active slot based on priority: restyled → uploaded → generated
+      if (newSlots.restyled) {
+        setActiveSlot('restyled');
+      } else if (newSlots.uploaded) {
+        setActiveSlot('uploaded');
+      } else if (newSlots.generated) {
+        setActiveSlot('generated');
+      }
+
+      setIsCheckingCache(false);
     };
 
-    checkCache();
-  }, [description, cachedUrl, cacheImage]);
+    checkAllCaches();
+  }, [description, imageCache, cacheImage]);
 
   // Generate new image
   const handleGenerate = async (forceRegenerate = false) => {
@@ -134,7 +196,9 @@ export function ImagePlaceholder({
       }
 
       if (data.url) {
-        setImageData({ url: data.url, source: 'generated' });
+        const cacheKey = getCacheKey('generated');
+        setSlots(prev => ({ ...prev, generated: data.url }));
+        setActiveSlot('generated');
         cacheImage(cacheKey, data.url);
       } else if (data.placeholder) {
         setError(data.message || 'Image generation not available');
@@ -157,7 +221,7 @@ export function ImagePlaceholder({
     try {
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('description', description);
+      formData.append('description', `upload:${description}`);
 
       const response = await fetch('/api/upload-image', {
         method: 'POST',
@@ -170,13 +234,14 @@ export function ImagePlaceholder({
         throw new Error(data.error || 'Failed to upload image');
       }
 
-      setImageData({ url: data.url, source: 'uploaded' });
+      const cacheKey = getCacheKey('uploaded');
+      setSlots(prev => ({ ...prev, uploaded: data.url }));
+      setActiveSlot('uploaded');
       cacheImage(cacheKey, data.url);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to upload image');
     } finally {
       setIsUploading(false);
-      // Reset file input
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -185,7 +250,7 @@ export function ImagePlaceholder({
 
   // Handle restyle
   const handleRestyle = async () => {
-    if (!cachedUrl || (!selectedPreset && !customPrompt.trim())) return;
+    if (!activeImageUrl || (!selectedPreset && !customPrompt.trim())) return;
 
     setIsRestyling(true);
     setError(null);
@@ -195,7 +260,7 @@ export function ImagePlaceholder({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          imageUrl: cachedUrl,
+          imageUrl: activeImageUrl,
           styleId: selectedPreset || undefined,
           customPrompt: customPrompt.trim() || undefined,
           backgroundColor: getBackgroundColor(),
@@ -208,12 +273,9 @@ export function ImagePlaceholder({
         throw new Error(data.error || 'Failed to restyle image');
       }
 
-      // Store original URL for restore
-      setImageData({
-        url: data.url,
-        originalUrl: imageData?.originalUrl || cachedUrl,
-        source: 'restyled',
-      });
+      const cacheKey = getCacheKey('restyled');
+      setSlots(prev => ({ ...prev, restyled: data.url }));
+      setActiveSlot('restyled');
       cacheImage(cacheKey, data.url);
       setShowRestyleModal(false);
       setCustomPrompt('');
@@ -225,16 +287,17 @@ export function ImagePlaceholder({
     }
   };
 
-  // Restore original image
-  const handleRestore = () => {
-    if (imageData?.originalUrl) {
-      const originalUrl = imageData.originalUrl;
-      setImageData({
-        url: originalUrl,
-        source: 'uploaded', // or 'generated', doesn't matter for restore
-      });
-      cacheImage(cacheKey, originalUrl);
-    }
+  // Slot labels
+  const slotLabels: Record<ImageSlot, string> = {
+    generated: 'AI',
+    uploaded: 'Upload',
+    restyled: 'Styled',
+  };
+
+  const slotColors: Record<ImageSlot, string> = {
+    generated: 'bg-emerald-600',
+    uploaded: 'bg-blue-600',
+    restyled: 'bg-purple-600',
   };
 
   // Hidden file input
@@ -247,6 +310,43 @@ export function ImagePlaceholder({
       className="hidden"
     />
   );
+
+  // Slot picker UI
+  const renderSlotPicker = () => {
+    if (availableSlots.length <= 1) return null;
+
+    return (
+      <AnimatePresence>
+        {showSlotPicker && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className="absolute top-12 left-2 z-50 bg-neutral-900 rounded-lg border border-neutral-700 p-1 shadow-xl"
+          >
+            {availableSlots.map(slot => (
+              <button
+                key={slot}
+                onClick={() => {
+                  setActiveSlot(slot);
+                  setShowSlotPicker(false);
+                }}
+                className={`flex items-center gap-2 w-full px-3 py-2 rounded-md text-left text-sm transition-colors ${
+                  activeSlot === slot
+                    ? 'bg-neutral-700 text-white'
+                    : 'hover:bg-neutral-800 text-neutral-300'
+                }`}
+              >
+                <span className={`w-2 h-2 rounded-full ${slotColors[slot]}`} />
+                {slotLabels[slot]}
+                {activeSlot === slot && <span className="ml-auto text-xs text-neutral-500">Active</span>}
+              </button>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    );
+  };
 
   // Restyle Modal
   const renderRestyleModal = () => (
@@ -266,7 +366,6 @@ export function ImagePlaceholder({
             className="bg-neutral-900 rounded-2xl p-6 max-w-lg w-full max-h-[80vh] overflow-y-auto border border-neutral-700"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header */}
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-2">
                 <Wand2 className="w-5 h-5 text-purple-400" />
@@ -280,17 +379,15 @@ export function ImagePlaceholder({
               </button>
             </div>
 
-            {/* Preview */}
             <div className="mb-6 rounded-lg overflow-hidden">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={cachedUrl || ''}
+                src={activeImageUrl || ''}
                 alt="Current image"
-                className="w-full aspect-video object-cover"
+                className="w-full aspect-video object-contain bg-neutral-800"
               />
             </div>
 
-            {/* Style Presets */}
             <div className="mb-6">
               <label className="block text-sm font-medium text-neutral-300 mb-3">
                 Select a Style Preset
@@ -318,7 +415,6 @@ export function ImagePlaceholder({
               </div>
             </div>
 
-            {/* Custom Prompt */}
             <div className="mb-6">
               <label className="block text-sm font-medium text-neutral-300 mb-2">
                 Or Use Custom Prompt
@@ -329,20 +425,18 @@ export function ImagePlaceholder({
                   setCustomPrompt(e.target.value);
                   if (e.target.value.trim()) setSelectedPreset(null);
                 }}
-                placeholder="e.g., Transform into a watercolor painting with soft edges..."
+                placeholder="e.g., Transform into a watercolor painting..."
                 className="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-lg text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-purple-500 resize-none"
                 rows={3}
               />
             </div>
 
-            {/* Error */}
             {error && (
               <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-300 text-sm">
                 {error}
               </div>
             )}
 
-            {/* Actions */}
             <div className="flex gap-3">
               <button
                 onClick={() => setShowRestyleModal(false)}
@@ -374,8 +468,8 @@ export function ImagePlaceholder({
     </AnimatePresence>
   );
 
-  // If we have an image, show it with action buttons
-  if (cachedUrl) {
+  // If we have an active image, show it with action buttons
+  if (activeImageUrl) {
     return (
       <>
         {renderFileInput()}
@@ -387,31 +481,49 @@ export function ImagePlaceholder({
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={cachedUrl}
+            src={activeImageUrl}
             alt={description}
-            className="absolute inset-0 w-full h-full object-contain"
+            className="absolute inset-0 w-full h-full object-contain bg-black/20"
             loading="lazy"
           />
+
+          {/* Slot indicator + picker (top left) */}
+          {!isPresenting && activeSlot && (
+            <div className="absolute top-2 left-2 z-40">
+              <button
+                onClick={() => setShowSlotPicker(!showSlotPicker)}
+                className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium transition-all ${slotColors[activeSlot]} text-white ${
+                  availableSlots.length > 1 ? 'hover:opacity-90 cursor-pointer' : ''
+                }`}
+                disabled={availableSlots.length <= 1}
+              >
+                {availableSlots.length > 1 && <Layers className="w-3 h-3" />}
+                {slotLabels[activeSlot]}
+                {availableSlots.length > 1 && (
+                  <span className="opacity-70">({availableSlots.length})</span>
+                )}
+              </button>
+              {renderSlotPicker()}
+            </div>
+          )}
 
           {/* Action buttons (hover) */}
           {!isPresenting && (
             <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-              {/* Regenerate */}
               <button
                 onClick={() => handleGenerate(true)}
                 disabled={isGenerating}
-                className="flex items-center gap-1.5 px-3 py-2 bg-slide-accent text-slide-bg rounded-lg font-medium text-xs hover:bg-slide-accent/90 transition-colors disabled:opacity-50"
-                title="Regenerate with AI"
+                className="flex items-center gap-1.5 px-3 py-2 bg-emerald-600 text-white rounded-lg font-medium text-xs hover:bg-emerald-500 transition-colors disabled:opacity-50"
+                title="Generate with AI"
               >
                 {isGenerating ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 ) : (
-                  <RefreshCw className="w-3.5 h-3.5" />
+                  <Sparkles className="w-3.5 h-3.5" />
                 )}
-                Regenerate
+                Generate
               </button>
 
-              {/* Upload */}
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploading}
@@ -426,42 +538,14 @@ export function ImagePlaceholder({
                 Upload
               </button>
 
-              {/* Restyle */}
               <button
                 onClick={() => setShowRestyleModal(true)}
                 className="flex items-center gap-1.5 px-3 py-2 bg-purple-600 text-white rounded-lg font-medium text-xs hover:bg-purple-500 transition-colors"
-                title="Apply a style to this image"
+                title="Restyle this image"
               >
                 <Wand2 className="w-3.5 h-3.5" />
                 Restyle
               </button>
-
-              {/* Restore (only if restyled) */}
-              {imageData?.originalUrl && (
-                <button
-                  onClick={handleRestore}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-amber-600 text-white rounded-lg font-medium text-xs hover:bg-amber-500 transition-colors"
-                  title="Restore original image"
-                >
-                  <Undo2 className="w-3.5 h-3.5" />
-                  Restore
-                </button>
-              )}
-            </div>
-          )}
-
-          {/* Source indicator badge */}
-          {!isPresenting && imageData?.source && (
-            <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity">
-              <span className={`px-2 py-1 rounded text-xs font-medium ${
-                imageData.source === 'uploaded' ? 'bg-blue-600/80 text-white' :
-                imageData.source === 'restyled' ? 'bg-purple-600/80 text-white' :
-                'bg-neutral-600/80 text-white'
-              }`}>
-                {imageData.source === 'uploaded' ? 'Uploaded' :
-                 imageData.source === 'restyled' ? 'Restyled' :
-                 'Generated'}
-              </span>
             </div>
           )}
 
@@ -515,7 +599,7 @@ export function ImagePlaceholder({
             <div className="flex gap-2">
               <button
                 onClick={() => handleGenerate(false)}
-                className="px-4 py-2 bg-slide-accent text-slide-bg rounded-lg font-medium text-sm hover:bg-slide-accent/90 transition-colors"
+                className="px-4 py-2 bg-emerald-600 text-white rounded-lg font-medium text-sm hover:bg-emerald-500 transition-colors"
               >
                 Try Again
               </button>
@@ -539,7 +623,7 @@ export function ImagePlaceholder({
               <div className="flex gap-2">
                 <button
                   onClick={() => handleGenerate(false)}
-                  className="flex items-center gap-2 px-4 py-2 bg-slide-accent text-slide-bg rounded-lg font-medium text-sm hover:bg-slide-accent/90 transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg font-medium text-sm hover:bg-emerald-500 transition-colors"
                 >
                   <Sparkles className="w-4 h-4" />
                   Generate
