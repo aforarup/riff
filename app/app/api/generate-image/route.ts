@@ -1,6 +1,6 @@
 // ============================================
 // API: /api/generate-image
-// Generate images using Google Gemini Imagen
+// Generate images using Google Gemini 3
 // ============================================
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -11,16 +11,28 @@ import { IMAGE_STYLE_PRESETS, ImageStyleId } from '@/lib/types';
 function getPromptForStyle(description: string, styleId: ImageStyleId, backgroundColor?: string): string {
   const preset = IMAGE_STYLE_PRESETS.find((p) => p.id === styleId);
 
-  // Add background color instruction if provided
+  // Add STRONG background color instruction at the START if provided
+  // Image models tend to ignore instructions at the end, so we put it first
   const bgInstruction = backgroundColor
-    ? ` The image should have a ${backgroundColor} background that seamlessly blends with the slide.`
+    ? `IMPORTANT: Use a solid ${backgroundColor} background color. The background MUST be ${backgroundColor}. `
     : '';
 
   if (!preset) {
     // Fallback to default
-    return `${description}. Style: professional, high-quality, presentation-style. Create a clean, visually striking image suitable for a presentation slide.${bgInstruction} Aspect ratio 16:9.`;
+    return `${bgInstruction}${description}. Style: professional, high-quality, presentation-style. Create a clean, visually striking image suitable for a presentation slide. Aspect ratio 16:9.`;
   }
-  return preset.promptTemplate.replace('{description}', description) + bgInstruction;
+
+  // Prepend background instruction to the styled prompt
+  return bgInstruction + preset.promptTemplate.replace('{description}', description);
+}
+
+// Extract image data from Gemini response
+function extractImageFromResponse(data: any): string | null {
+  // Gemini 3 / Gemini 2 format: candidates[].content.parts[].inlineData
+  const imagePart = data.candidates?.[0]?.content?.parts?.find(
+    (part: any) => part.inlineData?.mimeType?.startsWith('image/')
+  );
+  return imagePart?.inlineData?.data || null;
 }
 
 export async function POST(request: NextRequest) {
@@ -34,7 +46,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create a cache key that includes the style (bg color changes are allowed without invalidating cache)
+    // Create a cache key that includes the style (not bg color - images persist across themes)
+    // User must click "Regenerate" to get new background color
     const cacheKey = styleId && styleId !== 'none'
       ? `${styleId}:${description}`
       : description;
@@ -58,7 +71,6 @@ export async function POST(request: NextRequest) {
     // Build the prompt using style preset, including background color
     const fullPrompt = getPromptForStyle(description, styleId || 'none', backgroundColor);
 
-    // Call Gemini Imagen API
     const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
     if (!apiKey) {
       return NextResponse.json(
@@ -67,8 +79,53 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Using Gemini's imagen model for image generation
-    const response = await fetch(
+    // Try Gemini 3 first (best quality, 4K support, better text rendering)
+    console.log('Attempting Gemini 3 image generation...');
+    const gemini3Response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: fullPrompt,
+                },
+              ],
+            },
+          ],
+          generationConfig: {
+            responseModalities: ['image'],
+          },
+        }),
+      }
+    );
+
+    if (gemini3Response.ok) {
+      const data = await gemini3Response.json();
+      const imageData = extractImageFromResponse(data);
+
+      if (imageData) {
+        const imageBuffer = Buffer.from(imageData, 'base64');
+        const cachedUrl = await saveImageToCache(cacheKey, imageBuffer);
+
+        return NextResponse.json({
+          url: cachedUrl,
+          cached: false,
+          description,
+          styleId,
+          model: 'gemini-3-pro-image-preview',
+        });
+      }
+    }
+
+    // Fallback 1: Try Imagen 3
+    console.log('Gemini 3 failed, trying Imagen 3...');
+    const imagenResponse = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:predict?key=${apiKey}`,
       {
         method: 'POST',
@@ -90,94 +147,81 @@ export async function POST(request: NextRequest) {
       }
     );
 
-    if (!response.ok) {
-      // Fallback: Try using Gemini 2.0 Flash for image generation
-      const geminiResponse = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            contents: [
-              {
-                parts: [
-                  {
-                    text: `Generate an image: ${fullPrompt}`,
-                  },
-                ],
-              },
-            ],
-            generationConfig: {
-              responseModalities: ['image', 'text'],
-            },
-          }),
-        }
-      );
+    if (imagenResponse.ok) {
+      const data = await imagenResponse.json();
+      const imageData = data.predictions?.[0]?.bytesBase64Encoded;
 
-      if (!geminiResponse.ok) {
-        const errorText = await geminiResponse.text();
-        console.error('Gemini API error:', errorText);
-        return NextResponse.json(
-          { error: 'Failed to generate image', details: errorText },
-          { status: 500 }
-        );
-      }
+      if (imageData) {
+        const imageBuffer = Buffer.from(imageData, 'base64');
+        const cachedUrl = await saveImageToCache(cacheKey, imageBuffer);
 
-      const geminiData = await geminiResponse.json();
-
-      // Extract image from response
-      const imagePart = geminiData.candidates?.[0]?.content?.parts?.find(
-        (part: any) => part.inlineData?.mimeType?.startsWith('image/')
-      );
-
-      if (!imagePart?.inlineData?.data) {
-        // Return a placeholder response if image generation isn't available
         return NextResponse.json({
-          url: null,
+          url: cachedUrl,
           cached: false,
           description,
           styleId,
-          placeholder: true,
-          message: 'Image generation not available. Please configure Imagen API.',
+          model: 'imagen-3.0-generate-001',
         });
       }
-
-      // Convert base64 to buffer and save
-      const imageBuffer = Buffer.from(imagePart.inlineData.data, 'base64');
-      const cachedUrl = await saveImageToCache(cacheKey, imageBuffer);
-
-      return NextResponse.json({
-        url: cachedUrl,
-        cached: false,
-        description,
-        styleId,
-      });
     }
 
-    const data = await response.json();
+    // Fallback 2: Try Gemini 2.0 Flash
+    console.log('Imagen 3 failed, trying Gemini 2.0 Flash...');
+    const gemini2Response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: `Generate an image: ${fullPrompt}`,
+                },
+              ],
+            },
+          ],
+          generationConfig: {
+            responseModalities: ['image', 'text'],
+          },
+        }),
+      }
+    );
 
-    // Extract image from Imagen response
-    const imageData = data.predictions?.[0]?.bytesBase64Encoded;
+    if (gemini2Response.ok) {
+      const data = await gemini2Response.json();
+      const imageData = extractImageFromResponse(data);
 
-    if (!imageData) {
-      return NextResponse.json(
-        { error: 'No image generated' },
-        { status: 500 }
-      );
+      if (imageData) {
+        const imageBuffer = Buffer.from(imageData, 'base64');
+        const cachedUrl = await saveImageToCache(cacheKey, imageBuffer);
+
+        return NextResponse.json({
+          url: cachedUrl,
+          cached: false,
+          description,
+          styleId,
+          model: 'gemini-2.0-flash-exp',
+        });
+      }
     }
 
-    // Convert base64 to buffer and save to cache
-    const imageBuffer = Buffer.from(imageData, 'base64');
-    const cachedUrl = await saveImageToCache(cacheKey, imageBuffer);
+    // All models failed
+    const errorText = await gemini2Response.text();
+    console.error('All image generation models failed. Last error:', errorText);
 
     return NextResponse.json({
-      url: cachedUrl,
+      url: null,
       cached: false,
       description,
       styleId,
+      placeholder: true,
+      message: 'Image generation not available. All models failed.',
     });
+
   } catch (error) {
     console.error('Error generating image:', error);
     return NextResponse.json(
