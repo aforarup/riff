@@ -14,6 +14,7 @@ interface PresenterClientProps {
   themeCSS?: string;
   themePrompt?: string;
   initialRenderMode?: SlideRenderMode;
+  isSharedView?: boolean;
 }
 
 export function PresenterClient({
@@ -23,6 +24,7 @@ export function PresenterClient({
   themeCSS,
   themePrompt,
   initialRenderMode = 'standard',
+  isSharedView = false,
 }: PresenterClientProps) {
   return (
     <Presenter
@@ -32,6 +34,7 @@ export function PresenterClient({
       themeCSS={themeCSS}
       themePrompt={themePrompt}
       initialRenderMode={initialRenderMode}
+      isSharedView={isSharedView}
     />
   );
 }

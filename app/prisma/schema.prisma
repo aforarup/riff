@@ -113,13 +113,20 @@ model Deck {
   ownerId String
   owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 
-  // Sharing
+  // Sharing (legacy - keeping for potential future user-specific sharing)
   shares DeckShare[]
+
+  // Public sharing & publishing
+  shareToken       String?   @unique // Public share token (nanoid)
+  publishedContent String?   @db.Text // Markdown snapshot at publish time
+  publishedTheme   String?   @db.Text // Theme JSON snapshot at publish time
+  publishedAt      DateTime? // Last publish timestamp
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([ownerId])
+  @@index([shareToken])
 }
 
 // ============================================

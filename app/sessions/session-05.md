@@ -210,3 +210,196 @@ After:  users/{userId}/decks/{deckId}.md
 **Not Yet Implemented:**
 - Sharing system (Phase 4)
 - User preferences migration (Phase 5)
+
+---
+
+## Session 05 Continued: Production Deployment & Marketing Assets
+
+### Production OAuth Configuration
+
+Configured OAuth for production deployment at riff.im (redirects to www.riff.im):
+
+**Google OAuth Console:**
+- Authorized JavaScript origins: `https://www.riff.im`
+- Authorized redirect URIs: `https://www.riff.im/api/auth/callback/google`
+
+**GitHub OAuth App:**
+- Homepage URL: `https://www.riff.im`
+- Authorization callback URL: `https://www.riff.im/api/auth/callback/github`
+
+**Vercel Environment:**
+- `NEXTAUTH_URL=https://www.riff.im`
+- Generated new `NEXTAUTH_SECRET` for production
+
+### Build Pipeline Fixes
+
+**Problem 1: Prisma connection at build time**
+- Build failed trying to connect to database during compilation
+- Fixed with lazy Proxy initialization pattern
+
+**Problem 2: Prisma client not regenerated on Vercel**
+- Vercel caches `node_modules`, stale Prisma client
+- Added `prisma generate` to build script
+
+**Problem 3: Database tables don't exist in production**
+- Needed automated migrations, not manual
+- Added `prisma migrate deploy` to build script
+
+**Final build script:**
+```json
+"build": "prisma generate && prisma migrate deploy && next build"
+```
+
+**Initial migration created:** `prisma/migrations/20251212124028_init/`
+
+### UI/UX Improvements
+
+**Loading Indicator:**
+- Added loading overlay with message to editor
+- Shows during deck operations (loading, saving, deleting)
+
+**Landing Page Hydration Fix:**
+- Fixed blank state on initial load
+- Added `isMounted` state pattern to prevent SSR/client mismatch
+
+**Auth Status in Navbar:**
+- Added user avatar or login icon to landing page navbar
+- Shows profile image if logged in, login icon if not
+
+**Dynamic Page Titles:**
+- Editor shows deck name: "Deck Name | Riff"
+- Falls back to "Editor | Riff" when no deck selected
+
+### Marketing Assets
+
+**Favicon (`app/icon.svg`):**
+- SVG grid logo matching brand
+- 4 rounded rectangles in 2x2 grid
+
+**Page Titles:**
+- Root: "Riff - Turn your notes to stunning decks"
+- Template: "%s | Riff"
+- Added layout files for `/auth` and `/editor` routes
+
+**OpenGraph & Twitter Images:**
+- Dynamic image generation using `next/og`
+- Playfair Display font loaded from fontsource CDN
+- Matches landing page hero design:
+  - Dark background (#030303)
+  - Grid pattern with mask fade
+  - Centered logo (80px icon + 72px "Riff" text)
+  - Slogan at 70px ("Turn your notes" / "to a stunning deck.")
+  - Domain "riff.im" bottom-right in white
+
+**Files Created:**
+- `app/icon.svg`
+- `app/opengraph-image.tsx`
+- `app/twitter-image.tsx`
+- `app/auth/layout.tsx`
+- `app/editor/layout.tsx`
+
+**Files Modified:**
+- `app/layout.tsx` - Added metadata, fonts, OG config
+- `app/editor/page.tsx` - Loading overlay, dynamic title, removed inline fonts
+- `components/Landing.tsx` - Auth icon, hydration fix, removed inline fonts
+
+### Hydration Error Fix
+
+**Problem:** Text content mismatch between server and client
+- Inline `<style jsx global>` tags encoded quotes differently
+- Server: `&#x27;` / Client: `'`
+
+**Solution:**
+- Removed inline font style tags from Landing.tsx and editor
+- Fonts already loaded in root layout via Google Fonts link
+
+### Commits
+
+- `5c6a0cb` - feat: add OG images, favicon, page titles, and UI improvements
+
+---
+
+## Session 05 Final: Deck Sharing with Publish Model
+
+### Overview
+
+Added presentation sharing where shared links show a **published** snapshot, not the live draft. Changes only appear publicly after explicit "Publish" action.
+
+**User Choice:** Publish model (not live or static snapshots)
+
+**Flow:**
+1. User creates/edits deck in editor (draft)
+2. User clicks "Share" → generates share link
+3. User clicks "Publish" → current draft becomes the published version
+4. Anyone with link sees published version (no auth)
+5. Further edits stay in draft until next publish
+
+### Database Schema Changes
+
+Added fields to `Deck` model in `prisma/schema.prisma`:
+
+```prisma
+model Deck {
+  // ... existing fields ...
+
+  // Public sharing & publishing
+  shareToken       String?   @unique // Public share token (nanoid)
+  publishedContent String?   @db.Text // Markdown snapshot at publish time
+  publishedTheme   String?   @db.Text // Theme JSON snapshot at publish time
+  publishedAt      DateTime? // Last publish timestamp
+}
+```
+
+**Migration:** `prisma/migrations/20251212193148_add_sharing_fields/`
+
+### API Routes Created
+
+1. **`POST /api/decks/[id]/share`** - Creates or returns share token
+2. **`GET /api/decks/[id]/share`** - Gets current share status
+3. **`DELETE /api/decks/[id]/share`** - Revokes share (clears token + published content)
+4. **`POST /api/decks/[id]/publish`** - Copies current draft → published snapshot
+5. **`GET /api/shared/[token]`** - Public endpoint, returns published content (no auth)
+
+### Frontend Routes Created
+
+**`/p/[token]/page.tsx`** - Public shared presentation
+- Clean URL: `riff.im/p/abc123`
+- No auth required
+- Fetches published content from database
+- Uses same `PresenterClient` component with `isSharedView` flag
+
+### UI Components
+
+**`components/sharing/ShareDialog.tsx`**
+- Modal for managing sharing and publishing
+- States: Not shared → Shared but not published → Published
+- Shows "unpublished changes" warning
+- Copy link, Publish, Republish, Revoke actions
+
+**Editor Header**
+- Added Share button (only visible when deck is selected)
+- Opens ShareDialog modal
+
+### Files Created
+
+- `app/api/decks/[id]/share/route.ts`
+- `app/api/decks/[id]/publish/route.ts`
+- `app/api/shared/[token]/route.ts`
+- `app/p/[token]/page.tsx`
+- `components/sharing/ShareDialog.tsx`
+- `prisma/migrations/20251212193148_add_sharing_fields/migration.sql`
+
+### Files Modified
+
+- `prisma/schema.prisma` - Added sharing fields to Deck model
+- `app/editor/page.tsx` - Added Share button and ShareDialog
+- `app/present/[id]/client.tsx` - Added isSharedView prop
+- `components/Presenter.tsx` - Added isSharedView prop
+
+### URL Structure
+
+| URL | Purpose | Auth |
+|-----|---------|------|
+| `/editor` | Edit deck (draft) | Required |
+| `/present/[id]` | Preview own deck | Required |
+| `/p/[token]` | Public shared view | None |

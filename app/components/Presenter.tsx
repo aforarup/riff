@@ -29,6 +29,7 @@ interface PresenterProps {
   themeCSS?: string;
   themePrompt?: string;
   initialRenderMode?: SlideRenderMode;
+  isSharedView?: boolean;
 }
 
 export function Presenter({
@@ -38,6 +39,7 @@ export function Presenter({
   themeCSS,
   themePrompt,
   initialRenderMode = 'standard',
+  isSharedView = false,
 }: PresenterProps) {
   const [currentSlide, setCurrentSlide] = useState(initialSlide);
   const [currentReveal, setCurrentReveal] = useState(0);

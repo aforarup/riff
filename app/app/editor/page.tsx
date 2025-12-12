@@ -6,7 +6,7 @@
 
 import { useEffect, useState, useCallback, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { PanelLeftClose, PanelLeft, X, Loader2, Plus, FileSymlink, LayoutGrid } from 'lucide-react';
+import { PanelLeftClose, PanelLeft, X, Loader2, Plus, FileSymlink, LayoutGrid, Share2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useStore } from '@/lib/store';
 import { parseSlideMarkdown } from '@/lib/parser';
@@ -18,6 +18,7 @@ import { ImageStyleSelector } from '@/components/ImageStyleSelector';
 import { FormatHelpDialog } from '@/components/FormatHelpDialog';
 import { DocumentUploader } from '@/components/DocumentUploader';
 import { UserMenu } from '@/components/auth/UserMenu';
+import { ShareDialog } from '@/components/sharing/ShareDialog';
 
 // Wrapper component to handle Suspense for useSearchParams
 function EditorContent() {
@@ -56,6 +57,7 @@ function EditorContent() {
   const [initialDeckLoaded, setInitialDeckLoaded] = useState(false);
   const [showNewDeckModal, setShowNewDeckModal] = useState(false);
   const [showUploader, setShowUploader] = useState(false);
+  const [showShareDialog, setShowShareDialog] = useState(false);
   const [newDeckName, setNewDeckName] = useState('');
   const [loadingMessage, setLoadingMessage] = useState<string | null>(null);
 
@@ -447,6 +449,18 @@ function EditorContent() {
               isGenerating={isGeneratingTheme}
             />
 
+            {/* Share Button */}
+            {currentDeckId && (
+              <button
+                onClick={() => setShowShareDialog(true)}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 text-sm text-text-secondary hover:text-text-primary hover:bg-surface rounded-md transition-colors"
+                title="Share presentation"
+              >
+                <Share2 className="w-4 h-4" />
+                <span>Share</span>
+              </button>
+            )}
+
             <button
               onClick={toggleEditor}
               className="p-2 hover:bg-surface rounded-md text-text-secondary hover:text-text-primary transition-colors"
@@ -607,6 +621,16 @@ function EditorContent() {
         <DocumentUploader
           onClose={() => setShowUploader(false)}
           onSuccess={handleUploadSuccess}
+        />
+      )}
+
+      {/* Share Dialog */}
+      {currentDeckId && currentDeck && (
+        <ShareDialog
+          deckId={currentDeckId}
+          deckName={currentDeck.name}
+          isOpen={showShareDialog}
+          onClose={() => setShowShareDialog(false)}
         />
       )}
     </div>
