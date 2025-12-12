@@ -13,9 +13,6 @@ import { parseSlideMarkdown } from '@/lib/parser';
 import { DeckManager } from '@/components/DeckManager';
 import { SlideEditor } from '@/components/SlideEditor';
 import { SlidePreview } from '@/components/SlidePreview';
-import { ThemeCustomizer } from '@/components/ThemeCustomizer';
-import { ImageStyleSelector } from '@/components/ImageStyleSelector';
-import { FormatHelpDialog } from '@/components/FormatHelpDialog';
 import { DocumentUploader } from '@/components/DocumentUploader';
 import { UserMenu } from '@/components/auth/UserMenu';
 import { ShareDialog } from '@/components/sharing/ShareDialog';
@@ -430,25 +427,15 @@ function EditorContent() {
             <button
               onClick={() => setShowUploader(true)}
               className="flex items-center gap-1.5 px-2.5 py-1.5 text-sm text-text-secondary hover:text-text-primary hover:bg-surface rounded-md transition-colors"
+              title="Create deck from document"
             >
               <FileSymlink className="w-4 h-4" />
-              <span>Create from document</span>
+              <span>Import</span>
             </button>
           </div>
 
           {/* Right: Actions */}
-          <div className="flex items-center gap-2">
-            <FormatHelpDialog />
-
-            <ImageStyleSelector />
-
-            <ThemeCustomizer
-              currentPrompt={themePrompt}
-              onGenerate={generateTheme}
-              onReset={resetTheme}
-              isGenerating={isGeneratingTheme}
-            />
-
+          <div className="flex items-center gap-1">
             {/* Share Button */}
             {currentDeckId && (
               <button
@@ -473,7 +460,7 @@ function EditorContent() {
               )}
             </button>
 
-            <div className="h-4 w-px bg-border" />
+            <div className="h-4 w-px bg-border mx-1" />
 
             <UserMenu />
           </div>
@@ -508,7 +495,13 @@ function EditorContent() {
         <div className="flex-1 h-full overflow-hidden bg-background-secondary relative">
           <div className="h-full p-4">
             {currentDeckId ? (
-              <SlidePreview deckId={currentDeckId} onSave={saveDeck} />
+              <SlidePreview
+                deckId={currentDeckId}
+                onSave={saveDeck}
+                onGenerateTheme={generateTheme}
+                onResetTheme={resetTheme}
+                isGeneratingTheme={isGeneratingTheme}
+              />
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-text-tertiary">
                 <svg

@@ -2,14 +2,15 @@
 
 // ============================================
 // VIBE SLIDES - Slide Editor Component
-// Single textarea with slide position indicator
+// With current slide highlighting
 // ============================================
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Save, FileText, Circle } from 'lucide-react';
 import { useStore } from '@/lib/store';
 import { parseSlideMarkdown } from '@/lib/parser';
+import { FormatHelpDialog } from '@/components/FormatHelpDialog';
 
 interface SlideEditorProps {
   content: string;
@@ -46,6 +47,32 @@ function getSlideFromPosition(content: string, cursorPos: number): number {
   return separators ? separators.length : 0;
 }
 
+// Find line ranges for each slide
+interface SlideLineRange {
+  slideIndex: number;
+  startLine: number;
+  endLine: number;
+}
+
+function getSlideLineRanges(content: string): SlideLineRange[] {
+  const lines = content.split('\n');
+  const ranges: SlideLineRange[] = [];
+  let currentSlide = 0;
+  let startLine = 0;
+
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].trim() === '---') {
+      ranges.push({ slideIndex: currentSlide, startLine, endLine: i - 1 });
+      currentSlide++;
+      startLine = i + 1;
+    }
+  }
+
+  // Last slide
+  ranges.push({ slideIndex: currentSlide, startLine, endLine: lines.length - 1 });
+  return ranges;
+}
+
 export function SlideEditor({ content, onChange, onSave, isSaving = false }: SlideEditorProps) {
   const [localContent, setLocalContent] = useState(content);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -56,6 +83,9 @@ export function SlideEditor({ content, onChange, onSave, isSaving = false }: Sli
   const lastSavedContent = useRef(content);
   const lastScrolledSlide = useRef(-1);
   const isEditorDriven = useRef(false);
+  const gutterRef = useRef<HTMLDivElement>(null);
+  const highlightRef = useRef<HTMLDivElement>(null);
+  const [scrollTop, setScrollTop] = useState(0);
 
   useEffect(() => {
     if (content !== lastSavedContent.current && !hasUnsavedChanges) {
@@ -152,8 +182,22 @@ export function SlideEditor({ content, onChange, onSave, isSaving = false }: Sli
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleSave]);
 
+  // Sync scroll for gutter and highlight
+  const handleScroll = useCallback((e: React.UIEvent<HTMLTextAreaElement>) => {
+    setScrollTop(e.currentTarget.scrollTop);
+  }, []);
+
   // Use actual parsed slide count (parser filters empty slides)
   const slideCount = parsedDeck?.slides.length || 1;
+
+  // Calculate slide line ranges for highlighting
+  const slideRanges = useMemo(() => getSlideLineRanges(localContent), [localContent]);
+  const lineCount = localContent.split('\n').length;
+  const LINE_HEIGHT = 24; // Must match textarea line-height (leading-relaxed = 1.5 * 16 ≈ 24)
+  const PADDING = 16; // p-4 = 16px
+
+  // Get current slide's line range
+  const currentRange = slideRanges.find(r => r.slideIndex === editorSlide);
 
   return (
     <div className="flex flex-col h-full bg-background rounded-lg overflow-hidden border border-border">
@@ -168,7 +212,11 @@ export function SlideEditor({ content, onChange, onSave, isSaving = false }: Sli
           </span>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          <FormatHelpDialog />
+
+          <div className="h-4 w-px bg-border" />
+
           {hasUnsavedChanges && (
             <motion.div
               initial={{ opacity: 0 }}
@@ -199,8 +247,45 @@ export function SlideEditor({ content, onChange, onSave, isSaving = false }: Sli
         </div>
       </div>
 
-      {/* Editor */}
-      <div className="flex-1 overflow-hidden">
+      {/* Editor with gutter */}
+      <div className="flex-1 overflow-hidden relative">
+        {/* Gutter with slide indicators */}
+        <div
+          ref={gutterRef}
+          className="absolute left-0 top-0 w-8 h-full pointer-events-none overflow-hidden"
+        >
+          <div
+            className="relative"
+            style={{
+              height: lineCount * LINE_HEIGHT + PADDING * 2,
+              transform: `translateY(${-scrollTop}px)`,
+            }}
+          >
+            <div style={{ height: PADDING }} />
+            {slideRanges.map((range) => {
+              const isActive = range.slideIndex === editorSlide;
+              const top = range.startLine * LINE_HEIGHT + PADDING;
+              const height = (range.endLine - range.startLine + 1) * LINE_HEIGHT;
+
+              return (
+                <div
+                  key={range.slideIndex}
+                  className="absolute left-0 w-full"
+                  style={{ top, height }}
+                >
+                  {/* Left border indicator */}
+                  <div
+                    className={`absolute left-0 top-0 w-0.5 h-full transition-colors duration-150 ${
+                      isActive ? 'bg-text-primary' : 'bg-transparent'
+                    }`}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Textarea */}
         <textarea
           ref={textareaRef}
           value={localContent}
@@ -208,8 +293,9 @@ export function SlideEditor({ content, onChange, onSave, isSaving = false }: Sli
           onClick={handleCursorChange}
           onKeyUp={handleCursorChange}
           onSelect={handleCursorChange}
+          onScroll={handleScroll}
           className="
-            w-full h-full p-4
+            w-full h-full p-4 pl-10
             bg-transparent text-text-primary font-mono text-sm
             resize-none outline-none
             placeholder:text-text-quaternary
@@ -235,6 +321,38 @@ export function SlideEditor({ content, onChange, onSave, isSaving = false }: Sli
 # Images are auto-generated!`}
           spellCheck={false}
         />
+
+        {/* Dimming overlay for non-current slides (must be after textarea to overlay text) */}
+        <div
+          ref={highlightRef}
+          className="absolute inset-0 pointer-events-none overflow-hidden"
+          style={{ paddingLeft: 8 }}
+        >
+          <div
+            className="relative"
+            style={{
+              height: lineCount * LINE_HEIGHT + PADDING * 2,
+              transform: `translateY(${-scrollTop}px)`,
+            }}
+          >
+            {/* Dim non-current slides */}
+            {slideRanges.map((range) => {
+              const isActive = range.slideIndex === editorSlide;
+              if (isActive) return null;
+
+              const top = range.startLine * LINE_HEIGHT + PADDING;
+              const height = (range.endLine - range.startLine + 1) * LINE_HEIGHT;
+
+              return (
+                <div
+                  key={`dim-${range.slideIndex}`}
+                  className="absolute left-0 right-4 bg-background/50"
+                  style={{ top, height }}
+                />
+              );
+            })}
+          </div>
+        </div>
       </div>
 
       {/* Footer */}

@@ -22,29 +22,33 @@ export function ImageStyleSelector() {
     setIsOpen(false);
   };
 
+  // Better label: show "Style" when default, otherwise show the style name
+  const buttonLabel = imageStyle === 'none' ? 'Style' : currentPreset.name;
+
   return (
     <div className="relative">
       {/* Trigger button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="
-          flex items-center gap-2 px-3 py-2
+          flex items-center gap-1.5 px-2.5 py-1.5
           hover:bg-surface
           border border-border hover:border-border-hover
           rounded-md text-text-secondary hover:text-text-primary
-          transition-all duration-fast text-sm
+          transition-all duration-fast text-xs
         "
+        title="Image generation style"
       >
-        <Image className="w-4 h-4" />
-        <span className="hidden sm:inline">{currentPreset.name}</span>
+        <Image className="w-3.5 h-3.5" />
+        <span>{buttonLabel}</span>
         <ChevronDown
-          className={`w-3.5 h-3.5 text-text-tertiary transition-transform duration-fast ${
+          className={`w-3 h-3 text-text-tertiary transition-transform duration-fast ${
             isOpen ? 'rotate-180' : ''
           }`}
         />
       </button>
 
-      {/* Dropdown */}
+      {/* Dropdown (opens upward) */}
       <AnimatePresence>
         {isOpen && (
           <>
@@ -56,26 +60,26 @@ export function ImageStyleSelector() {
 
             {/* Menu */}
             <motion.div
-              initial={{ opacity: 0, y: -4 }}
+              initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
+              exit={{ opacity: 0, y: 4 }}
               transition={{ duration: 0.1 }}
               className="
-                absolute right-0 top-full mt-1.5 z-50
+                absolute right-0 bottom-full mb-1.5 z-50
                 w-64 overflow-hidden
-                bg-surface border border-border rounded-lg
-                shadow-xl shadow-black/20
+                bg-[#0a0a0a] border border-[#27272a] rounded-lg
+                shadow-xl shadow-black/30
               "
             >
               {/* Header */}
-              <div className="px-3 py-2 border-b border-border">
-                <p className="text-xs text-text-tertiary uppercase tracking-wider">
+              <div className="px-3 py-2 border-b border-[#27272a]">
+                <p className="text-xs text-[#71717a] uppercase tracking-wider">
                   Image Style
                 </p>
               </div>
 
               {/* Options */}
-              <div className="p-1.5 max-h-80 overflow-y-auto">
+              <div className="p-1.5 max-h-64 overflow-y-auto">
                 {IMAGE_STYLE_PRESETS.map((preset) => (
                   <button
                     key={preset.id}
@@ -85,8 +89,8 @@ export function ImageStyleSelector() {
                       transition-colors
                       ${
                         preset.id === imageStyle
-                          ? 'bg-surface-hover'
-                          : 'hover:bg-surface-hover'
+                          ? 'bg-white/10'
+                          : 'hover:bg-white/5'
                       }
                     `}
                   >
@@ -95,17 +99,17 @@ export function ImageStyleSelector() {
                         <span
                           className={`text-sm ${
                             preset.id === imageStyle
-                              ? 'text-text-primary'
-                              : 'text-text-secondary'
+                              ? 'text-white'
+                              : 'text-[#a1a1aa]'
                           }`}
                         >
                           {preset.name}
                         </span>
                         {preset.id === imageStyle && (
-                          <Check className="w-3.5 h-3.5 text-text-primary" />
+                          <Check className="w-3.5 h-3.5 text-white" />
                         )}
                       </div>
-                      <p className="text-xs text-text-quaternary mt-0.5 line-clamp-2">
+                      <p className="text-xs text-[#71717a] mt-0.5 line-clamp-2">
                         {preset.description}
                       </p>
                     </div>
@@ -114,9 +118,9 @@ export function ImageStyleSelector() {
               </div>
 
               {/* Footer hint */}
-              <div className="px-3 py-2 border-t border-border">
-                <p className="text-xs text-text-quaternary">
-                  Style applies to all new images in this session
+              <div className="px-3 py-2 border-t border-[#27272a]">
+                <p className="text-xs text-[#52525b]">
+                  Applies to all new generated images
                 </p>
               </div>
             </motion.div>

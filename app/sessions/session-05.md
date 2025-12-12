@@ -403,3 +403,87 @@ model Deck {
 | `/editor` | Edit deck (draft) | Required |
 | `/present/[id]` | Preview own deck | Required |
 | `/p/[token]` | Public shared view | None |
+
+---
+
+## Session 06: Editor UI/UX Cleanup
+
+**Date:** 2025-12-12
+
+### Overview
+
+Comprehensive UI polish and layout reorganization for the Riff editor. Focused on decluttering the header, better visual grouping, improved component styling (shadcn-inspired), and overall polish.
+
+### Phase 1: Header Declutter
+
+- Removed `ThemeCustomizer` and `ImageStyleSelector` from header
+- Shortened "Create from document" to "Import"
+- Added proper dividers for visual grouping
+- Share button kept in header with better placement
+
+### Phase 2: Preview Panel Reorganization
+
+- Moved Theme and ImageStyle controls to preview panel bottom toolbar
+- Theme customizer accessible via palette icon
+- Image style selector positioned next to theme controls
+- Controls bar now contains: Navigation | Mode Toggle | Generator Settings | Theme | Style | Divider | Notes | Present
+
+### Phase 3: ShareDialog Redesign (shadcn-inspired)
+
+Complete rewrite with modern styling:
+- Dark theme: `bg-[#0a0a0a]`, `border-[#27272a]`
+- Clean header with title + description
+- Compact status badges (Live/Not published with colored indicators)
+- Footer layout: Revoke (left, ghost) | Publish (right, primary)
+- Proper centering using flex container
+
+### Phase 4: Image Buttons Polish
+
+- Replaced full-overlay hover buttons with floating action bar at bottom
+- Clean pill-shaped bar: `[ Regen [▼] | Upload | Style ]`
+- Split button pattern for Generate with style dropdown
+- Restyle modal updated to match shadcn-inspired design
+
+### Phase 5: Editor Slide Highlighting
+
+- Added gutter with left border indicator (2px white bar for active slide)
+- Background highlight layer shows subtle tint (`bg-text-primary/[0.03]`)
+- Scroll synchronization between gutter/highlight overlay and textarea
+- Visual feedback when navigating between slides
+
+### Phase 6: Overall Polish
+
+- Updated FormatHelpDialog to match shadcn-inspired styling
+- Consistent dialog patterns across all modals
+- ImageStyleSelector: "Default" → "Style" label, dropdown opens upward
+- Standardized colors throughout
+
+### Files Modified
+
+| File | Changes |
+|------|---------|
+| `app/editor/page.tsx` | Header restructure, removed Theme/ImageStyle, "Import" label |
+| `components/SlidePreview.tsx` | Added theme/style controls to bottom bar |
+| `components/SlideEditor.tsx` | Slide highlighting with gutter + background |
+| `components/sharing/ShareDialog.tsx` | Complete shadcn-inspired redesign |
+| `components/ImagePlaceholder.tsx` | Floating action bar, split Generate button |
+| `components/ImageStyleSelector.tsx` | Upward dropdown, "Style" label |
+| `components/FormatHelpDialog.tsx` | shadcn-inspired styling |
+
+### Design Tokens Used
+
+```css
+/* shadcn-inspired dark theme */
+--bg-dialog: #0a0a0a
+--border: #27272a
+--text-muted: #a1a1aa
+--text-dimmed: #71717a
+
+/* Button heights */
+--btn-height: h-9 (36px)
+
+/* Consistent patterns */
+- Dialogs: flex items-center justify-center (not translate)
+- Dropdowns opening near bottom: bottom-full mb-1.5
+- White primary buttons: bg-white text-black
+```

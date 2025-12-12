@@ -107,152 +107,134 @@ export function FormatHelpDialog() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.15 }}
-              className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+              className="fixed inset-0 z-50 bg-black/80"
               onClick={() => setIsOpen(false)}
             />
 
             {/* Dialog */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              transition={{ duration: 0.15 }}
-              className="
-                fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50
-                w-full max-w-lg max-h-[80vh] overflow-hidden
-                bg-surface border border-border rounded-xl
-                shadow-2xl shadow-black/30
-              "
-            >
-              {/* Header */}
-              <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-                <div className="flex items-center gap-2">
-                  <Lightbulb className="w-5 h-5 text-text-tertiary" />
-                  <h2 className="text-base font-medium text-text-primary">
-                    Handbook
-                  </h2>
-                </div>
-                <button
-                  onClick={() => setIsOpen(false)}
-                  className="p-1.5 hover:bg-surface-hover rounded-md text-text-tertiary hover:text-text-primary transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              {/* Content */}
-              <div className="p-5 overflow-y-auto max-h-[calc(80vh-120px)]">
-                <p className="text-sm text-text-secondary mb-4">
-                  Use these markdown formats in your slides:
-                </p>
-
-                <div className="space-y-1">
-                  {FORMAT_EXAMPLES.map((item, index) => (
-                    <div
-                      key={index}
-                      className="flex items-start gap-3 py-2 px-3 rounded-md hover:bg-surface-hover transition-colors"
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.15 }}
+                className="w-full max-w-lg max-h-[85vh] bg-[#0a0a0a] border border-[#27272a] rounded-lg shadow-xl flex flex-col"
+              >
+                {/* Header */}
+                <div className="flex flex-col gap-1.5 p-6 pb-4 flex-shrink-0">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-lg font-semibold text-white tracking-tight">
+                      Handbook
+                    </h2>
+                    <button
+                      onClick={() => setIsOpen(false)}
+                      className="rounded-sm opacity-70 hover:opacity-100 transition-opacity"
                     >
-                      <code className="flex-shrink-0 min-w-[160px] text-xs font-mono text-amber-400 bg-amber-400/10 px-2 py-1 rounded">
-                        {item.syntax}
-                      </code>
-                      <span className="text-sm text-text-primary">
-                        {item.description}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Background Effects Section */}
-                <div className="mt-6 p-4 bg-surface rounded-lg border border-border">
-                  <h3 className="text-xs font-medium text-text-primary uppercase tracking-wider mb-3">
-                    Background Effects
-                  </h3>
-                  <p className="text-xs text-text-secondary mb-3">
-                    Syntax: <code className="text-amber-400 bg-amber-400/10 px-1 rounded">[bg:type-position-color]</code>
+                      <X className="w-4 h-4 text-white" />
+                    </button>
+                  </div>
+                  <p className="text-sm text-[#a1a1aa]">
+                    Markdown syntax for creating slides.
                   </p>
+                </div>
 
-                  {/* Effect Types with Previews */}
-                  <div className="mb-4">
-                    <p className="text-xs text-text-primary mb-2 font-medium">Types:</p>
-                    <div className="grid grid-cols-4 gap-2">
-                      {BACKGROUND_EFFECTS.map((effect) => (
-                        <div key={effect.type} className="text-center">
-                          <div
-                            className="w-full h-12 rounded border border-border mb-1 bg-black"
-                            style={effect.preview('rgba(99, 102, 241, 0.6)')}
-                          />
-                          <code className="text-[10px] text-amber-400">{effect.type}</code>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Positions */}
-                  <div className="mb-4">
-                    <p className="text-xs text-text-primary mb-2 font-medium">Positions:</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {POSITIONS.map((pos) => (
-                        <code key={pos} className="text-[10px] text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded">
-                          {pos}
+                {/* Content */}
+                <div className="px-6 pb-6 overflow-y-auto flex-1">
+                  <div className="space-y-0.5">
+                    {FORMAT_EXAMPLES.map((item, index) => (
+                      <div
+                        key={index}
+                        className="flex items-start gap-3 py-2 px-3 rounded-md hover:bg-white/5 transition-colors"
+                      >
+                        <code className="flex-shrink-0 min-w-[150px] text-xs font-mono text-amber-400 bg-amber-500/10 px-2 py-1 rounded">
+                          {item.syntax}
                         </code>
-                      ))}
-                    </div>
+                        <span className="text-sm text-[#a1a1aa]">
+                          {item.description}
+                        </span>
+                      </div>
+                    ))}
                   </div>
 
-                  {/* Colors with Swatches */}
-                  <div>
-                    <p className="text-xs text-text-primary mb-2 font-medium">Colors:</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {COLORS.map((c) => (
-                        <div key={c.name} className="flex items-center gap-1 bg-black/30 px-2 py-0.5 rounded border border-border">
-                          <div
-                            className="w-2.5 h-2.5 rounded-full border border-white/20"
-                            style={{ backgroundColor: c.preview }}
-                          />
-                          <code className="text-[10px] text-text-primary">{c.name}</code>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Example */}
-                  <div className="mt-4 pt-3 border-t border-border">
-                    <p className="text-xs text-text-secondary">
-                      Example: <code className="text-amber-400 bg-amber-400/10 px-1 rounded">[bg:glow-bottom-amber]</code> creates an amber glow from the bottom
+                  {/* Background Effects Section */}
+                  <div className="mt-5 p-4 bg-[#18181b] rounded-md border border-[#27272a]">
+                    <h3 className="text-xs font-medium text-white uppercase tracking-wider mb-3">
+                      Background Effects
+                    </h3>
+                    <p className="text-xs text-[#71717a] mb-3">
+                      Syntax: <code className="text-amber-400 bg-amber-500/10 px-1 rounded">[bg:type-position-color]</code>
                     </p>
+
+                    {/* Effect Types with Previews */}
+                    <div className="mb-4">
+                      <p className="text-xs text-white mb-2 font-medium">Types:</p>
+                      <div className="grid grid-cols-4 gap-2">
+                        {BACKGROUND_EFFECTS.map((effect) => (
+                          <div key={effect.type} className="text-center">
+                            <div
+                              className="w-full h-10 rounded border border-[#27272a] mb-1 bg-black"
+                              style={effect.preview('rgba(99, 102, 241, 0.6)')}
+                            />
+                            <code className="text-[10px] text-amber-400">{effect.type}</code>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Positions */}
+                    <div className="mb-4">
+                      <p className="text-xs text-white mb-2 font-medium">Positions:</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {POSITIONS.map((pos) => (
+                          <code key={pos} className="text-[10px] text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded">
+                            {pos}
+                          </code>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Colors with Swatches */}
+                    <div>
+                      <p className="text-xs text-white mb-2 font-medium">Colors:</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {COLORS.map((c) => (
+                          <div key={c.name} className="flex items-center gap-1 bg-black/50 px-2 py-0.5 rounded border border-[#27272a]">
+                            <div
+                              className="w-2 h-2 rounded-full"
+                              style={{ backgroundColor: c.preview }}
+                            />
+                            <code className="text-[10px] text-[#a1a1aa]">{c.name}</code>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Tips section */}
+                  <div className="mt-4 p-4 bg-[#18181b] rounded-md border border-[#27272a]">
+                    <h3 className="text-xs font-medium text-white uppercase tracking-wider mb-2">
+                      Tips
+                    </h3>
+                    <ul className="text-xs text-[#71717a] space-y-1.5">
+                      <li>• Use <code className="text-amber-400 bg-amber-500/10 px-1 rounded">**pause**</code> to reveal content step-by-step</li>
+                      <li>• Wrap text in <code className="text-amber-400 bg-amber-500/10 px-1 rounded">`backticks`</code> to highlight keywords</li>
+                      <li>• Add <code className="text-amber-400 bg-amber-500/10 px-1 rounded">[section]</code> for bold section headers</li>
+                      <li>• Speaker notes (<code className="text-amber-400 bg-amber-500/10 px-1 rounded">&gt;</code>) are only visible in notes panel</li>
+                    </ul>
                   </div>
                 </div>
 
-                {/* Tips section */}
-                <div className="mt-4 p-4 bg-surface rounded-lg border border-border">
-                  <h3 className="text-xs font-medium text-text-primary uppercase tracking-wider mb-2">
-                    Tips
-                  </h3>
-                  <ul className="text-xs text-text-secondary space-y-1.5">
-                    <li>• Use <code className="text-amber-400 bg-amber-400/10 px-1 rounded">**pause**</code> to reveal content step-by-step</li>
-                    <li>• Wrap text in <code className="text-amber-400 bg-amber-400/10 px-1 rounded">`backticks`</code> to highlight keywords</li>
-                    <li>• Add <code className="text-amber-400 bg-amber-400/10 px-1 rounded">[section]</code> after <code className="text-amber-400 bg-amber-400/10 px-1 rounded">---</code> for bold section headers</li>
-                    <li>• Add <code className="text-amber-400 bg-amber-400/10 px-1 rounded">[anvil]</code> or other effects to headings for animations</li>
-                    <li>• Speaker notes (<code className="text-amber-400 bg-amber-400/10 px-1 rounded">&gt;</code>) are only visible in notes panel</li>
-                  </ul>
+                {/* Footer */}
+                <div className="flex justify-end px-6 py-4 border-t border-[#27272a] flex-shrink-0">
+                  <button
+                    onClick={() => setIsOpen(false)}
+                    className="h-9 px-4 bg-white hover:bg-white/90 text-black text-sm font-medium rounded-md transition-colors"
+                  >
+                    Got it
+                  </button>
                 </div>
-              </div>
-
-              {/* Footer */}
-              <div className="px-5 py-3 border-t border-border bg-background/50">
-                <button
-                  onClick={() => setIsOpen(false)}
-                  className="
-                    w-full px-4 py-2
-                    bg-text-primary hover:bg-text-secondary
-                    rounded-md text-background text-sm font-medium
-                    transition-colors
-                  "
-                >
-                  Got it
-                </button>
-              </div>
-            </motion.div>
+              </motion.div>
+            </div>
           </>
         )}
       </AnimatePresence>

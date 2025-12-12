@@ -16,6 +16,7 @@ import {
   Wand2,
   X,
   Layers,
+  ChevronDown,
 } from 'lucide-react';
 import { useStore } from '@/lib/store';
 import { IMAGE_STYLE_PRESETS } from '@/lib/types';
@@ -53,6 +54,7 @@ export function ImagePlaceholder({
   const [error, setError] = useState<string | null>(null);
   const [showRestyleModal, setShowRestyleModal] = useState(false);
   const [showSlotPicker, setShowSlotPicker] = useState(false);
+  const [showGenerateDropdown, setShowGenerateDropdown] = useState(false);
   const [customPrompt, setCustomPrompt] = useState('');
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
 
@@ -191,10 +193,13 @@ export function ImagePlaceholder({
     checkAllCaches();
   }, [description, imageCache, cacheImage, getPersistedSlotUrl]);
 
-  // Generate new image
-  const handleGenerate = async (forceRegenerate = false) => {
+  // Generate new image with optional style override
+  const handleGenerate = async (forceRegenerate = false, styleOverride?: string) => {
     setIsGenerating(true);
     setError(null);
+    setShowGenerateDropdown(false);
+
+    const styleToUse = styleOverride || imageStyle;
 
     try {
       const response = await fetch('/api/generate-image', {
@@ -202,7 +207,7 @@ export function ImagePlaceholder({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           description,
-          styleId: imageStyle,
+          styleId: styleToUse,
           backgroundColor: getBackgroundColor(),
           forceRegenerate,
         }),
@@ -369,7 +374,7 @@ export function ImagePlaceholder({
     );
   };
 
-  // Restyle Modal
+  // Restyle Modal (shadcn-inspired)
   const renderRestyleModal = () => (
     <AnimatePresence>
       {showRestyleModal && (
@@ -377,108 +382,114 @@ export function ImagePlaceholder({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80"
           onClick={() => setShowRestyleModal(false)}
         >
           <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
+            initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.9, opacity: 0 }}
-            className="bg-neutral-900 rounded-2xl p-6 max-w-lg w-full max-h-[80vh] overflow-y-auto border border-neutral-700"
+            exit={{ scale: 0.95, opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="bg-[#0a0a0a] border border-[#27272a] rounded-lg shadow-xl max-w-lg w-full max-h-[85vh] overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-2">
-                <Wand2 className="w-5 h-5 text-purple-400" />
-                <h3 className="text-lg font-semibold text-white">Restyle Image</h3>
+            {/* Header */}
+            <div className="flex flex-col gap-1.5 p-6 pb-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-white tracking-tight">Restyle image</h3>
+                <button
+                  onClick={() => setShowRestyleModal(false)}
+                  className="rounded-sm opacity-70 hover:opacity-100 transition-opacity"
+                >
+                  <X className="w-4 h-4 text-white" />
+                </button>
               </div>
+              <p className="text-sm text-[#a1a1aa]">
+                Transform this image with a new artistic style.
+              </p>
+            </div>
+
+            {/* Content */}
+            <div className="px-6 pb-6 space-y-4 overflow-y-auto max-h-[calc(85vh-160px)]">
+              {/* Preview */}
+              <div className="rounded-md overflow-hidden border border-[#27272a]">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={activeImageUrl || ''}
+                  alt="Current image"
+                  className="w-full aspect-video object-contain bg-[#18181b]"
+                />
+              </div>
+
+              {/* Style presets */}
+              <div>
+                <label className="block text-sm font-medium text-white mb-2">Style preset</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {IMAGE_STYLE_PRESETS.filter(p => p.id !== 'none').map((preset) => (
+                    <button
+                      key={preset.id}
+                      onClick={() => {
+                        setSelectedPreset(preset.id);
+                        setCustomPrompt('');
+                      }}
+                      className={`p-3 text-left rounded-md border transition-all ${
+                        selectedPreset === preset.id
+                          ? 'border-white bg-white/10'
+                          : 'border-[#27272a] hover:border-[#3f3f46] bg-[#18181b]'
+                      }`}
+                    >
+                      <div className="font-medium text-sm text-white">{preset.name}</div>
+                      <div className="text-xs text-[#71717a] mt-0.5 line-clamp-1">
+                        {preset.description}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Custom prompt */}
+              <div>
+                <label className="block text-sm font-medium text-white mb-2">Custom prompt</label>
+                <textarea
+                  value={customPrompt}
+                  onChange={(e) => {
+                    setCustomPrompt(e.target.value);
+                    if (e.target.value.trim()) setSelectedPreset(null);
+                  }}
+                  placeholder="e.g., Transform into a watercolor painting..."
+                  className="w-full h-20 px-3 py-2 bg-[#18181b] border border-[#27272a] rounded-md text-sm text-white placeholder-[#52525b] focus:outline-none focus:ring-1 focus:ring-[#3f3f46] resize-none"
+                />
+              </div>
+
+              {error && (
+                <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-md text-red-400 text-sm">
+                  {error}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-[#27272a]">
               <button
                 onClick={() => setShowRestyleModal(false)}
-                className="p-1 hover:bg-neutral-800 rounded-lg transition-colors"
-              >
-                <X className="w-5 h-5 text-neutral-400" />
-              </button>
-            </div>
-
-            <div className="mb-6 rounded-lg overflow-hidden">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={activeImageUrl || ''}
-                alt="Current image"
-                className="w-full aspect-video object-contain bg-neutral-800"
-              />
-            </div>
-
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-neutral-300 mb-3">
-                Select a Style Preset
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                {IMAGE_STYLE_PRESETS.filter(p => p.id !== 'none').map((preset) => (
-                  <button
-                    key={preset.id}
-                    onClick={() => {
-                      setSelectedPreset(preset.id);
-                      setCustomPrompt('');
-                    }}
-                    className={`p-3 text-left rounded-lg border transition-all ${
-                      selectedPreset === preset.id
-                        ? 'border-purple-500 bg-purple-500/20'
-                        : 'border-neutral-700 hover:border-neutral-600 bg-neutral-800/50'
-                    }`}
-                  >
-                    <div className="font-medium text-sm text-white">{preset.name}</div>
-                    <div className="text-xs text-neutral-400 mt-0.5 line-clamp-1">
-                      {preset.description}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-neutral-300 mb-2">
-                Or Use Custom Prompt
-              </label>
-              <textarea
-                value={customPrompt}
-                onChange={(e) => {
-                  setCustomPrompt(e.target.value);
-                  if (e.target.value.trim()) setSelectedPreset(null);
-                }}
-                placeholder="e.g., Transform into a watercolor painting..."
-                className="w-full px-4 py-3 bg-neutral-800 border border-neutral-700 rounded-lg text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-purple-500 resize-none"
-                rows={3}
-              />
-            </div>
-
-            {error && (
-              <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-300 text-sm">
-                {error}
-              </div>
-            )}
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowRestyleModal(false)}
-                className="flex-1 px-4 py-2.5 bg-neutral-800 hover:bg-neutral-700 text-white rounded-lg font-medium text-sm transition-colors"
+                className="h-9 px-4 text-sm text-[#a1a1aa] hover:text-white transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleRestyle}
                 disabled={isRestyling || (!selectedPreset && !customPrompt.trim())}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-500 disabled:bg-neutral-700 disabled:text-neutral-500 text-white rounded-lg font-medium text-sm transition-colors"
+                className="h-9 px-4 bg-white hover:bg-white/90 text-black text-sm font-medium rounded-md transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isRestyling ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Restyling...
+                    Applying...
                   </>
                 ) : (
                   <>
                     <Wand2 className="w-4 h-4" />
-                    Apply Style
+                    Apply style
                   </>
                 )}
               </button>
@@ -528,52 +539,110 @@ export function ImagePlaceholder({
             </div>
           )}
 
-          {/* Action buttons (hover) */}
+          {/* Floating action bar (bottom) */}
           {!isPresenting && (
-            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-              <button
-                onClick={() => handleGenerate(true)}
-                disabled={isGenerating}
-                className="flex items-center gap-1.5 px-3 py-2 bg-emerald-600 text-white rounded-lg font-medium text-xs hover:bg-emerald-500 transition-colors disabled:opacity-50"
-                title="Generate with AI"
-              >
-                {isGenerating ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <Sparkles className="w-3.5 h-3.5" />
-                )}
-                Generate
-              </button>
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-200 translate-y-1 group-hover:translate-y-0">
+              <div className="flex items-center gap-1 px-1.5 py-1.5 bg-black/90 backdrop-blur-sm rounded-lg border border-white/10 shadow-xl">
+                {/* Generate split button */}
+                <div className="relative flex items-center">
+                  <button
+                    onClick={() => handleGenerate(true)}
+                    disabled={isGenerating}
+                    className="flex items-center gap-1.5 pl-2.5 pr-1.5 py-1.5 text-white/80 hover:text-white hover:bg-white/10 rounded-l-md text-xs font-medium transition-colors disabled:opacity-50"
+                    title="Regenerate with current style"
+                  >
+                    {isGenerating ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <RefreshCw className="w-3.5 h-3.5" />
+                    )}
+                    Regen
+                  </button>
+                  <button
+                    onClick={() => setShowGenerateDropdown(!showGenerateDropdown)}
+                    disabled={isGenerating}
+                    className="flex items-center px-1 py-1.5 text-white/60 hover:text-white hover:bg-white/10 rounded-r-md transition-colors disabled:opacity-50 border-l border-white/10"
+                    title="Choose style"
+                  >
+                    <ChevronDown className="w-3 h-3" />
+                  </button>
 
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isUploading}
-                className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white rounded-lg font-medium text-xs hover:bg-blue-500 transition-colors disabled:opacity-50"
-                title="Upload your own image"
-              >
-                {isUploading ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <Upload className="w-3.5 h-3.5" />
-                )}
-                Upload
-              </button>
+                  {/* Style dropdown - rendered with fixed positioning to escape backdrop-blur */}
+                  <AnimatePresence>
+                    {showGenerateDropdown && (
+                      <>
+                        <div
+                          className="fixed inset-0 z-[100]"
+                          onClick={() => setShowGenerateDropdown(false)}
+                        />
+                        <div className="absolute left-0 bottom-full mb-1.5 z-[101]">
+                          <motion.div
+                            initial={{ opacity: 0, y: 4 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 4 }}
+                            transition={{ duration: 0.1 }}
+                            className="w-48 rounded-lg shadow-2xl overflow-hidden isolate"
+                            style={{
+                              backgroundColor: '#09090b',
+                              border: '1px solid #27272a',
+                            }}
+                          >
+                            <div
+                              className="px-2.5 py-1.5 border-b border-[#27272a]"
+                              style={{ backgroundColor: '#09090b' }}
+                            >
+                              <p className="text-[10px] text-[#71717a] uppercase tracking-wider">Generate with style</p>
+                            </div>
+                            <div
+                              className="p-1 max-h-48 overflow-y-auto"
+                              style={{ backgroundColor: '#09090b' }}
+                            >
+                              {IMAGE_STYLE_PRESETS.map((preset) => (
+                                <button
+                                  key={preset.id}
+                                  onClick={() => handleGenerate(true, preset.id)}
+                                  className="w-full text-left px-2.5 py-1.5 text-xs text-white/90 hover:text-white hover:bg-white/10 rounded transition-colors"
+                                >
+                                  {preset.name}
+                                </button>
+                              ))}
+                            </div>
+                          </motion.div>
+                        </div>
+                      </>
+                    )}
+                  </AnimatePresence>
+                </div>
 
-              <button
-                onClick={() => setShowRestyleModal(true)}
-                className="flex items-center gap-1.5 px-3 py-2 bg-purple-600 text-white rounded-lg font-medium text-xs hover:bg-purple-500 transition-colors"
-                title="Restyle this image"
-              >
-                <Wand2 className="w-3.5 h-3.5" />
-                Restyle
-              </button>
+                <div className="w-px h-4 bg-white/20" />
+
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 text-white/80 hover:text-white hover:bg-white/10 rounded-md text-xs font-medium transition-colors disabled:opacity-50"
+                  title="Upload image"
+                >
+                  {isUploading ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Upload className="w-3.5 h-3.5" />
+                  )}
+                  Upload
+                </button>
+
+                <div className="w-px h-4 bg-white/20" />
+
+                <button
+                  onClick={() => setShowRestyleModal(true)}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 text-white/80 hover:text-white hover:bg-white/10 rounded-md text-xs font-medium transition-colors"
+                  title="Restyle image"
+                >
+                  <Wand2 className="w-3.5 h-3.5" />
+                  Style
+                </button>
+              </div>
             </div>
           )}
-
-          {/* Description tooltip */}
-          <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-            <p className="text-white/80 text-sm truncate">{description}</p>
-          </div>
         </motion.div>
       </>
     );
@@ -641,19 +710,76 @@ export function ImagePlaceholder({
             </p>
 
             {!isPresenting && (
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleGenerate(false)}
-                  className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg font-medium text-sm hover:bg-emerald-500 transition-colors"
-                >
-                  <Sparkles className="w-4 h-4" />
-                  Generate
-                </button>
+              <div className="flex items-center gap-1 px-1.5 py-1.5 bg-black/90 backdrop-blur-sm rounded-lg border border-white/10">
+                {/* Generate split button */}
+                <div className="relative flex items-center">
+                  <button
+                    onClick={() => handleGenerate(false)}
+                    className="flex items-center gap-1.5 pl-3 pr-1.5 py-1.5 text-white hover:bg-white/10 rounded-l-md text-xs font-medium transition-colors"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    Generate
+                  </button>
+                  <button
+                    onClick={() => setShowGenerateDropdown(!showGenerateDropdown)}
+                    className="flex items-center px-1 py-1.5 text-white/60 hover:text-white hover:bg-white/10 rounded-r-md transition-colors border-l border-white/10"
+                    title="Choose style"
+                  >
+                    <ChevronDown className="w-3 h-3" />
+                  </button>
+
+                  {/* Style dropdown */}
+                  <AnimatePresence>
+                    {showGenerateDropdown && (
+                      <>
+                        <div
+                          className="fixed inset-0 z-[100]"
+                          onClick={() => setShowGenerateDropdown(false)}
+                        />
+                        <div className="absolute left-0 top-full mt-1.5 z-[101]">
+                          <motion.div
+                            initial={{ opacity: 0, y: -4 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -4 }}
+                            transition={{ duration: 0.1 }}
+                            className="w-48 rounded-lg shadow-2xl overflow-hidden isolate"
+                            style={{
+                              backgroundColor: '#09090b',
+                              border: '1px solid #27272a',
+                            }}
+                          >
+                            <div
+                              className="px-2.5 py-1.5 border-b border-[#27272a]"
+                              style={{ backgroundColor: '#09090b' }}
+                            >
+                              <p className="text-[10px] text-[#71717a] uppercase tracking-wider">Generate with style</p>
+                            </div>
+                            <div
+                              className="p-1 max-h-48 overflow-y-auto"
+                              style={{ backgroundColor: '#09090b' }}
+                            >
+                              {IMAGE_STYLE_PRESETS.map((preset) => (
+                                <button
+                                  key={preset.id}
+                                  onClick={() => handleGenerate(false, preset.id)}
+                                  className="w-full text-left px-2.5 py-1.5 text-xs text-white/90 hover:text-white hover:bg-white/10 rounded transition-colors"
+                                >
+                                  {preset.name}
+                                </button>
+                              ))}
+                            </div>
+                          </motion.div>
+                        </div>
+                      </>
+                    )}
+                  </AnimatePresence>
+                </div>
+                <div className="w-px h-4 bg-white/20" />
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium text-sm hover:bg-blue-500 transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-white hover:bg-white/10 rounded-md text-xs font-medium transition-colors"
                 >
-                  <Upload className="w-4 h-4" />
+                  <Upload className="w-3.5 h-3.5" />
                   Upload
                 </button>
               </div>

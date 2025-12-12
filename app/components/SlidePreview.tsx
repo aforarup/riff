@@ -14,19 +14,31 @@ import {
   Play,
   Sparkles,
   Layout,
+  Palette,
 } from 'lucide-react';
 import { useStore } from '@/lib/store';
 import { SlideRenderer } from './SlideRenderer';
 import { GeneratedSlide } from './GeneratedSlide';
 import { SlideGeneratorSettings } from './SlideGeneratorSettings';
+import { ThemeCustomizer } from './ThemeCustomizer';
+import { ImageStyleSelector } from './ImageStyleSelector';
 import { countReveals } from '@/lib/parser';
 
 interface SlidePreviewProps {
   deckId: string;
   onSave?: () => Promise<void>;
+  onGenerateTheme?: (prompt: string, systemPrompt?: string) => Promise<void>;
+  onResetTheme?: () => void;
+  isGeneratingTheme?: boolean;
 }
 
-export function SlidePreview({ deckId, onSave }: SlidePreviewProps) {
+export function SlidePreview({
+  deckId,
+  onSave,
+  onGenerateTheme,
+  onResetTheme,
+  isGeneratingTheme = false,
+}: SlidePreviewProps) {
   const {
     parsedDeck,
     presentation,
@@ -201,6 +213,21 @@ export function SlidePreview({ deckId, onSave }: SlidePreviewProps) {
 
           {/* Slide generator settings (only show when in generated mode) */}
           {isGeneratedMode && <SlideGeneratorSettings />}
+
+          <div className="w-px h-5 bg-border" />
+
+          {/* Theme customizer */}
+          {onGenerateTheme && (
+            <ThemeCustomizer
+              currentPrompt={themePrompt}
+              onGenerate={onGenerateTheme}
+              onReset={onResetTheme || (() => {})}
+              isGenerating={isGeneratingTheme}
+            />
+          )}
+
+          {/* Image style selector */}
+          <ImageStyleSelector />
 
           <div className="w-px h-5 bg-border" />
 
