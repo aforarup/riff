@@ -6,7 +6,7 @@
 
 import { useEffect, useState, useCallback, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { PanelLeftClose, PanelLeft, X, Loader2 } from 'lucide-react';
+import { PanelLeftClose, PanelLeft, X, Loader2, Plus, FileSymlink, LayoutGrid } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useStore } from '@/lib/store';
 import { parseSlideMarkdown } from '@/lib/parser';
@@ -16,6 +16,7 @@ import { SlidePreview } from '@/components/SlidePreview';
 import { ThemeCustomizer } from '@/components/ThemeCustomizer';
 import { ImageStyleSelector } from '@/components/ImageStyleSelector';
 import { FormatHelpDialog } from '@/components/FormatHelpDialog';
+import { DocumentUploader } from '@/components/DocumentUploader';
 
 // Wrapper component to handle Suspense for useSearchParams
 function EditorContent() {
@@ -52,6 +53,9 @@ function EditorContent() {
   const [isGeneratingTheme, setIsGeneratingTheme] = useState(false);
   const [themeCSS, setThemeCSS] = useState<string>('');
   const [initialDeckLoaded, setInitialDeckLoaded] = useState(false);
+  const [showNewDeckModal, setShowNewDeckModal] = useState(false);
+  const [showUploader, setShowUploader] = useState(false);
+  const [newDeckName, setNewDeckName] = useState('');
 
   const loadDeck = useCallback(async (id: string) => {
     setLoading(true);
@@ -108,24 +112,32 @@ function EditorContent() {
     const loadDecks = async () => {
       setLoading(true);
       try {
-        const response = await fetch('/api/decks');
-        const data = await response.json();
-        setDecks(data.decks || []);
-
-        // Check for deck query parameter first
+        // Check for deck query parameter first - try to load directly
+        // (handles case where deck was just created and not in cached list)
         const deckParam = searchParams.get('deck');
         if (deckParam) {
-          const deckExists = (data.decks || []).some((d: any) => d.id === deckParam);
-          if (deckExists) {
+          try {
             await loadDeck(deckParam);
+            // Refresh deck list to include the new deck
+            const listResponse = await fetch('/api/decks');
+            const listData = await listResponse.json();
+            setDecks(listData.decks || []);
             setInitialDeckLoaded(true);
             // Clean up URL
             window.history.replaceState({}, '', '/editor');
             return;
+          } catch {
+            // Deck not found, continue to load list normally
+            console.warn('Deck from URL not found, loading default');
           }
         }
 
-        // Otherwise load first deck
+        // Load deck list
+        const response = await fetch('/api/decks');
+        const data = await response.json();
+        setDecks(data.decks || []);
+
+        // Load first deck if available
         if (data.decks?.length > 0 && !currentDeckId) {
           await loadDeck(data.decks[0].id);
         }
@@ -266,30 +278,31 @@ function EditorContent() {
     [updateDeckContent]
   );
 
+  const handleCreateDeck = () => {
+    if (newDeckName.trim()) {
+      createDeck(newDeckName.trim());
+      setNewDeckName('');
+      setShowNewDeckModal(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background text-text-primary">
       {/* Custom theme CSS */}
       {themeCSS && <style dangerouslySetInnerHTML={{ __html: themeCSS }} />}
 
+      {/* Google Font for logo */}
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&display=swap');`}</style>
+
       {/* Header */}
       <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-sm border-b border-border">
         <div className="flex items-center justify-between h-14 px-4">
           {/* Left: Logo & Deck selector */}
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4">
             {/* Logo */}
             <a href="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
-              <svg
-                className="w-6 h-6 text-text-primary"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-              >
-                <path d="M4 4h16v16H4z" />
-                <path d="M4 9h16" />
-                <path d="M9 4v16" />
-              </svg>
-              <span className="text-sm font-medium tracking-tight">
+              <LayoutGrid className="w-5 h-5 text-text-secondary" strokeWidth={1.5} />
+              <span style={{ fontFamily: "'Playfair Display', Georgia, serif" }} className="text-lg font-semibold tracking-tight">
                 Riff
               </span>
             </a>
@@ -300,10 +313,29 @@ function EditorContent() {
               decks={decks}
               currentDeckId={currentDeckId}
               onSelect={loadDeck}
-              onCreate={createDeck}
               onDelete={deleteDeck}
               isLoading={isLoading}
             />
+
+            <div className="h-4 w-px bg-border" />
+
+            {/* New Deck Button */}
+            <button
+              onClick={() => setShowNewDeckModal(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-sm text-text-secondary hover:text-text-primary hover:bg-surface rounded-md transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              <span>New Deck</span>
+            </button>
+
+            {/* Import Button */}
+            <button
+              onClick={() => setShowUploader(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-sm text-text-secondary hover:text-text-primary hover:bg-surface rounded-md transition-colors"
+            >
+              <FileSymlink className="w-4 h-4" />
+              <span>Create from document</span>
+            </button>
           </div>
 
           {/* Right: Actions */}
@@ -404,6 +436,59 @@ function EditorContent() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* New Deck Modal */}
+      <AnimatePresence>
+        {showNewDeckModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              onClick={() => setShowNewDeckModal(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="relative w-full max-w-sm bg-surface border border-border rounded-xl shadow-2xl p-6"
+            >
+              <h3 className="text-lg font-medium mb-4">New Deck</h3>
+              <input
+                type="text"
+                value={newDeckName}
+                onChange={(e) => setNewDeckName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleCreateDeck()}
+                placeholder="Deck name..."
+                className="w-full px-3 py-2.5 bg-background border border-border rounded-lg text-text-primary text-sm placeholder:text-text-quaternary focus:border-border-focus outline-none mb-4"
+                autoFocus
+              />
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => {
+                    setShowNewDeckModal(false);
+                    setNewDeckName('');
+                  }}
+                  className="px-4 py-2 text-sm text-text-secondary hover:text-text-primary transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleCreateDeck}
+                  disabled={!newDeckName.trim()}
+                  className="px-4 py-2 bg-text-primary text-background rounded-lg text-sm font-medium hover:bg-text-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  Create
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Document Uploader Modal */}
+      {showUploader && <DocumentUploader onClose={() => setShowUploader(false)} />}
     </div>
   );
 }

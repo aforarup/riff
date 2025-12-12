@@ -179,16 +179,21 @@ Each slide is separated by \`---\` on its own line.
    - Use **pause** to reveal points progressively for complex slides
    - Break dense content into multiple slides
 
-4. **Visual Interest**:
-   - Add [image: description] placeholders where visuals would help
-   - Use section header slides with [section] for major topic changes
-   - Apply background effects sparingly for emphasis
+4. **VISUAL RICHNESS (CRITICAL)**:
+   - Add [image: description] on AT LEAST every 2-3 slides - presentations need visuals!
+   - Write SPECIFIC, DESCRIPTIVE image prompts (not generic). Examples:
+     - Good: "[image: A developer celebrating with arms raised as green checkmarks appear on multiple monitors]"
+     - Good: "[image: Split comparison showing chaotic manual process on left vs streamlined automated workflow on right]"
+     - Bad: "[image: technology]" or "[image: success]"
+   - Use [section] + background effects ([bg:glow-bottom-left], [bg:grid-center]) on section headers
+   - Apply text effects ([anvil], [typewriter], [glow]) on impactful or dramatic titles
+   - Use \`highlighted text\` for key terms and important concepts
 
 5. **Speaker Notes**: Convert explanatory text into > speaker notes rather than showing everything on slides.
 
 6. **Flow**:
-   - Start with a title slide
-   - Group related content into sections
+   - Start with a title slide (use [bg:glow-center] and [anvil] effect)
+   - Group related content into sections with visual section headers
    - End with a summary or call-to-action slide
 
 7. **Formatting**:
@@ -200,9 +205,8 @@ Each slide is separated by \`---\` on its own line.
 ## EXAMPLE OUTPUT
 
 \`\`\`markdown
----
 [section]
-[bg:glow-bottom-left]
+[bg:glow-center]
 
 # Introduction to Machine Learning [anvil]
 
@@ -210,11 +214,13 @@ Each slide is separated by \`---\` on its own line.
 
 ---
 
+[image: A diverse team of data scientists collaborating around holographic data visualizations in a modern office]
+
 # What We'll Cover
 
 **pause**
 
-- Understanding ML fundamentals
+- Understanding \`ML fundamentals\`
 
 **pause**
 
@@ -228,15 +234,44 @@ Each slide is separated by \`---\` on its own line.
 
 ---
 
-[image: Abstract visualization of neural network connections in blue and white]
+[section]
+[bg:grid-bottom-right]
+
+# Part 1: The Basics [typewriter]
+
+---
+
+[image: Split screen showing traditional programming with explicit rules on left, versus ML system learning from data patterns on right]
 
 # How Machines Learn
 
-### Systems improve through experience, not explicit programming
+### Systems improve through \`experience\`, not explicit programming
 
 > Emphasize the paradigm shift from traditional programming
 
 ---
+
+[image: A robot sitting at a desk surrounded by books and papers, absorbing information with glowing neural pathways]
+
+# Training Process
+
+**pause**
+
+- Feed the model thousands of examples
+- Model identifies patterns automatically
+- Accuracy improves with more data
+
+> Use the analogy of a child learning to recognize cats
+
+---
+
+[bg:hatch-top-left-amber]
+
+# Key Insight [glow]
+
+### The model writes its own rules based on what it sees
+
+---
 \`\`\`
 
-Now convert the provided document into this format. Focus on creating an engaging presentation that tells a clear story. Output ONLY the slide markdown, no explanations.`;
+Now convert the provided document into this format. Focus on creating an ENGAGING, VISUAL presentation. Add images frequently, use background effects on section headers, and apply text effects on impactful titles. Output ONLY the slide markdown, no explanations.`;

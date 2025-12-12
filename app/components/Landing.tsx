@@ -6,7 +6,7 @@ import {
   LayoutGrid,
   PanelLeft,
   FileText,
-  FileUp,
+  FileSymlink,
   Plus,
   ImageIcon,
   Play,
@@ -135,21 +135,21 @@ export function Landing() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
             >
-              <span className="inline-flex items-center px-3.5 py-1.5 mb-10 text-[11px] uppercase tracking-[0.15em] text-white/40 bg-white/[0.03] border border-white/[0.06] rounded-full">
+              {/* <span className="inline-flex items-center px-3.5 py-1.5 mb-10 text-[11px] uppercase tracking-[0.15em] text-white/40 bg-white/[0.03] border border-white/[0.06] rounded-full">
                 Documents to slides
-              </span>
+              </span> */}
 
               <h1
                 style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
                 className="text-[clamp(3rem,8vw,6rem)] font-bold leading-[0.95] mb-8 tracking-tight"
               >
-                Any document
+                Turn your notes
                 <br />
-                <span className="text-white/25">to stunning deck.</span>
+                <span className="text-white/25">to a stunning deck.</span>
               </h1>
 
               <p className="text-[20px] text-white/50 mb-14 max-w-lg mx-auto leading-relaxed font-normal" style={{ fontFamily: "ui-sans-serif, system-ui, sans-serif" }}>
-                Turn your notes, docs, and ideas into polished presentations.
+                Turn your notes, document, scribbles and ideas into polished presentations.
                 Simple markdown syntax, beautiful output.
               </p>
 
@@ -158,8 +158,8 @@ export function Landing() {
                   onClick={() => setShowUploader(true)}
                   className="inline-flex items-center gap-2.5 px-6 py-3 bg-white text-black rounded-xl font-medium text-[14px] hover:bg-white/90 transition-all duration-200"
                 >
-                  <FileUp className="w-4 h-4" />
-                  Import document
+                  <FileSymlink className="w-4 h-4" />
+                  I have content
                 </button>
 
                 <Link
@@ -490,8 +490,8 @@ export function Landing() {
                   onClick={() => setShowUploader(true)}
                   className="inline-flex items-center gap-2.5 px-6 py-3 bg-white text-black rounded-xl font-medium text-[14px] hover:bg-white/90 transition-all duration-200"
                 >
-                  <FileUp className="w-4 h-4" />
-                  Import document
+                  <FileSymlink className="w-4 h-4" />
+                  I have content
                 </button>
                 <Link
                   href="/editor"

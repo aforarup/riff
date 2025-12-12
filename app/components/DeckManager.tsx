@@ -10,9 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronDown,
   FileText,
-  Plus,
   Trash2,
-  X,
 } from 'lucide-react';
 import { Deck } from '@/lib/types';
 
@@ -20,7 +18,6 @@ interface DeckManagerProps {
   decks: Deck[];
   currentDeckId: string | null;
   onSelect: (id: string) => void;
-  onCreate: (name: string) => void;
   onDelete: (id: string) => void;
   isLoading?: boolean;
 }
@@ -29,24 +26,13 @@ export function DeckManager({
   decks,
   currentDeckId,
   onSelect,
-  onCreate,
   onDelete,
   isLoading = false,
 }: DeckManagerProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [isCreating, setIsCreating] = useState(false);
-  const [newDeckName, setNewDeckName] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   const currentDeck = decks.find((d) => d.id === currentDeckId);
-
-  const handleCreate = () => {
-    if (newDeckName.trim()) {
-      onCreate(newDeckName.trim());
-      setNewDeckName('');
-      setIsCreating(false);
-    }
-  };
 
   const handleDelete = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -91,10 +77,7 @@ export function DeckManager({
             {/* Backdrop */}
             <div
               className="fixed inset-0 z-40"
-              onClick={() => {
-                setIsOpen(false);
-                setIsCreating(false);
-              }}
+              onClick={() => setIsOpen(false)}
             />
 
             {/* Menu */}
@@ -110,59 +93,8 @@ export function DeckManager({
                 shadow-xl shadow-black/20
               "
             >
-              {/* Create new deck */}
-              <div className="p-2 border-b border-border">
-                {isCreating ? (
-                  <div className="flex items-center gap-1.5">
-                    <input
-                      type="text"
-                      value={newDeckName}
-                      onChange={(e) => setNewDeckName(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
-                      placeholder="Deck name..."
-                      className="
-                        flex-1 px-2.5 py-1.5 bg-background rounded-md
-                        text-text-primary text-sm placeholder:text-text-quaternary
-                        border border-border focus:border-border-focus
-                        outline-none
-                      "
-                      autoFocus
-                    />
-                    <button
-                      onClick={handleCreate}
-                      disabled={!newDeckName.trim()}
-                      className="p-1.5 bg-text-primary text-background rounded-md hover:bg-text-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                    >
-                      <Plus className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => {
-                        setIsCreating(false);
-                        setNewDeckName('');
-                      }}
-                      className="p-1.5 bg-surface-hover rounded-md text-text-tertiary hover:text-text-primary transition-colors"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => setIsCreating(true)}
-                    className="
-                      w-full flex items-center gap-2 px-2.5 py-2
-                      text-text-secondary hover:text-text-primary
-                      hover:bg-surface-hover rounded-md
-                      transition-colors text-sm
-                    "
-                  >
-                    <Plus className="w-4 h-4" />
-                    New Deck
-                  </button>
-                )}
-              </div>
-
               {/* Deck list */}
-              <div className="overflow-y-auto max-h-64 p-1.5">
+              <div className="overflow-y-auto max-h-72 p-1.5">
                 {decks.length === 0 ? (
                   <div className="px-3 py-6 text-center">
                     <FileText className="w-6 h-6 mx-auto mb-2 text-text-quaternary" />

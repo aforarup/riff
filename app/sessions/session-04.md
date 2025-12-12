@@ -50,7 +50,40 @@ Created an elaborate landing page for Riff with animated demos and visual flair,
 
 ## Files Modified
 - `app/app/page.tsx` - Now renders Landing component
-- `app/lib/prompts.ts` - Added `DOCUMENT_TO_SLIDES_PROMPT`
+- `app/lib/prompts.ts` - Added `DOCUMENT_TO_SLIDES_PROMPT`, enhanced visual requirements
+- `app/components/DeckManager.tsx` - Removed "New Deck" from dropdown (moved to header)
+- `app/components/FormatHelpDialog.tsx` - Changed icon to Lightbulb, text to "Handbook"
+
+## Additional Updates (Session Continued)
+
+### Document Uploader Redesign
+- Better layout with dark theme (`#0a0a0a` background)
+- Clear header with title + subtitle explaining the feature
+- File preview when selected (icon + name + char count + X to remove)
+- Options appear only after file selection (progressive disclosure)
+- AI callout at bottom with clickable links to ChatGPT, Claude, Gemini
+- "Full (don't reduce)" slide count option for comprehensive conversion
+
+### Conversion Improvements
+- **Full mode:** Preserves all content without summarizing (16384 max tokens)
+- **Visual requirements:** Images every 2-3 slides, background effects, text effects
+- **Better prompts:** Specific image description examples, emphasis on visual richness
+
+### Editor Page Updates
+- Logo updated to match landing page (LayoutGrid + Playfair Display font)
+- "New Deck" and "Create from document" buttons moved to header bar
+- New deck modal for creating decks
+- Fixed race condition: deck loads directly by ID from URL param (handles newly created decks)
+
+### UI Text/Icon Changes
+- Landing: "Import document" → "I have content" with `FileSymlink` icon
+- Editor: "+ New" → "+ New Deck"
+- Editor: "Import" → "Create from document" with `FileSymlink` icon
+- Help button: `?` → Lightbulb icon with "Handbook" text
+
+### Bug Fixes
+- Fixed "blob not found" error when redirecting from document import
+- Editor now loads deck directly by ID instead of checking cached list first
 
 ## Technical Notes
 

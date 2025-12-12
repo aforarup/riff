@@ -36,12 +36,29 @@ export async function POST(request: NextRequest) {
     const slideCount = options?.slideCount || 'auto';
     const style = options?.style || 'professional';
 
+    // Build slide count instruction
+    let slideCountInstruction: string;
+    if (slideCount === 'full') {
+      slideCountInstruction = 'Create as many slides as needed to cover ALL content comprehensively. Do NOT summarize or reduce - preserve all information from the document. Each major point, paragraph, or concept should have its own slide.';
+    } else if (slideCount === 'auto') {
+      slideCountInstruction = 'Determine automatically based on content (typically 1 slide per major point)';
+    } else {
+      slideCountInstruction = `Target approximately ${slideCount} slides`;
+    }
+
     const userPrompt = `Convert the following document into a Riff presentation.
 
 ## Conversion Settings
-- Target slide count: ${slideCount === 'auto' ? 'Determine automatically based on content' : slideCount + ' slides'}
+- Slide count: ${slideCountInstruction}
 - Style preference: ${style}
 - Include speaker notes: ${options?.includeSpeakerNotes !== false ? 'Yes' : 'No'}
+
+## IMPORTANT: Visual Requirements
+- Add [image: description] placeholders generously - at least every 2-3 slides
+- Use descriptive, specific image descriptions (e.g., "[image: A confident speaker presenting to an engaged audience in a modern conference room]")
+- Use background effects like [bg:glow-bottom-left] or [bg:grid-center] on section headers
+- Apply text effects like [anvil], [typewriter], or [glow] on impactful titles
+- Use **pause** to create progressive reveals for bullet points
 
 ## Document Content
 ${document}
@@ -51,11 +68,14 @@ Generate the complete markdown for the presentation now:`;
 
     const modelId = process.env.AI_GATEWAY_MODEL || 'moonshotai/kimi-k2-0905';
 
+    // Use higher token limit for "full" mode
+    const maxTokens = slideCount === 'full' ? 16384 : 8192;
+
     const { text: markdown } = await generateText({
       model: gateway(modelId),
       system: DOCUMENT_TO_SLIDES_PROMPT,
       prompt: userPrompt,
-      maxOutputTokens: 8192,
+      maxOutputTokens: maxTokens,
     });
 
     // Clean up - remove any markdown code fences if present

@@ -7,7 +7,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { HelpCircle, X } from 'lucide-react';
+import { Lightbulb, X } from 'lucide-react';
 
 const FORMAT_EXAMPLES = [
   { syntax: '---', description: 'Slide separator' },
@@ -90,13 +90,11 @@ export function FormatHelpDialog() {
       {/* Trigger button */}
       <button
         onClick={() => setIsOpen(true)}
-        className="
-          p-2 rounded-md transition-colors
-          hover:bg-surface text-text-tertiary hover:text-text-secondary
-        "
+        className="flex items-center gap-1.5 px-2.5 py-1.5 text-sm text-text-secondary hover:text-text-primary hover:bg-surface rounded-md transition-colors"
         title="Markdown format help"
       >
-        <HelpCircle className="w-4 h-4" />
+        <Lightbulb className="w-4 h-4" />
+        <span>Handbook</span>
       </button>
 
       {/* Dialog */}
@@ -129,9 +127,9 @@ export function FormatHelpDialog() {
               {/* Header */}
               <div className="flex items-center justify-between px-5 py-4 border-b border-border">
                 <div className="flex items-center gap-2">
-                  <HelpCircle className="w-5 h-5 text-text-tertiary" />
+                  <Lightbulb className="w-5 h-5 text-text-tertiary" />
                   <h2 className="text-base font-medium text-text-primary">
-                    Supported Formats
+                    Handbook
                   </h2>
                 </div>
                 <button
