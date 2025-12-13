@@ -6,7 +6,8 @@
 
 import { useEffect, useState, useCallback, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { PanelLeftClose, PanelLeft, X, Loader2, Plus, FileSymlink, LayoutGrid, Share2 } from 'lucide-react';
+import { PanelLeftClose, PanelLeft, X, Loader2, Plus, FileSymlink, Share2 } from 'lucide-react';
+import { RiffIcon } from '@/components/RiffIcon';
 import { useSearchParams } from 'next/navigation';
 import { useStore } from '@/lib/store';
 import { parseSlideMarkdown, updateImageInManifest, setActiveImageSlot } from '@/lib/parser';
@@ -444,7 +445,7 @@ function EditorContent() {
           <div className="flex items-center gap-4">
             {/* Logo */}
             <a href="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
-              <LayoutGrid className="w-5 h-5 text-text-secondary" strokeWidth={1.5} />
+              <RiffIcon size={26} primaryColor="rgba(255, 255, 255, 0.9)" secondaryColor="rgba(255, 255, 255, 0.5)" />
               <span style={{ fontFamily: "'Playfair Display', Georgia, serif" }} className="text-lg font-semibold tracking-tight">
                 Riff
               </span>

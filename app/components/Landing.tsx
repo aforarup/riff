@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useSession } from 'next-auth/react';
 import {
-  LayoutGrid,
   PanelLeft,
   FileText,
   FileSymlink,
@@ -16,6 +15,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { DocumentUploader } from './DocumentUploader';
+import { RiffIcon } from './RiffIcon';
 
 // Demo content for the animated preview
 const demoMarkdown = `# Quarterly Review
@@ -107,7 +107,7 @@ export function Landing() {
         <nav className="fixed top-0 left-0 right-0 z-50 bg-[#030303]/80 backdrop-blur-xl border-b border-white/[0.05]">
           <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
             <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-              <LayoutGrid className="w-5 h-5 text-white/80" strokeWidth={1.5} />
+              <RiffIcon size={26} primaryColor="rgba(255, 255, 255, 0.9)" secondaryColor="rgba(255, 255, 255, 0.5)" />
               <span style={{ fontFamily: "'Playfair Display', Georgia, serif" }} className="text-xl font-semibold tracking-tight">
                 Riff
               </span>
@@ -537,7 +537,7 @@ export function Landing() {
         <footer className="py-8 px-6 border-t border-white/[0.05]">
           <div className="max-w-6xl mx-auto flex items-center justify-between text-[13px] text-white/30">
             <div className="flex items-center gap-2.5">
-              <LayoutGrid className="w-4 h-4" strokeWidth={1.5} />
+              <RiffIcon size={20} primaryColor="rgba(255, 255, 255, 0.5)" secondaryColor="rgba(255, 255, 255, 0.25)" />
               <span style={{ fontFamily: "'Playfair Display', Georgia, serif" }} className="font-medium">Riff</span>
             </div>
             <span className="text-[#444]">Built with vibes. Present with style.</span>
@@ -647,9 +647,7 @@ function ImportVisual() {
 
         {/* Center Riff logo */}
         <div className="w-12 h-12 rounded-lg bg-black border border-[rgba(255,255,255,0.14)] shadow-md flex items-center justify-center">
-          <div className="w-6 h-6 rounded-full bg-[#ededed] flex items-center justify-center">
-            <LayoutGrid className="w-3 h-3 text-[#0a0a0a]" />
-          </div>
+          <RiffIcon size={24} primaryColor="rgba(255, 255, 255, 0.9)" secondaryColor="rgba(255, 255, 255, 0.5)" />
         </div>
       </div>
     </div>
