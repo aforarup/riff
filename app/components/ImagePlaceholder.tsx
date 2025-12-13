@@ -51,6 +51,7 @@ export function ImagePlaceholder({
   const [isUploading, setIsUploading] = useState(false);
   const [isRestyling, setIsRestyling] = useState(false);
   const [isCheckingCache, setIsCheckingCache] = useState(true);
+  const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showRestyleModal, setShowRestyleModal] = useState(false);
   const [showSlotPicker, setShowSlotPicker] = useState(false);
@@ -234,10 +235,14 @@ export function ImagePlaceholder({
     }
   };
 
-  // Handle file upload
-  const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  // Core file upload logic (used by both input and drag & drop)
+  const uploadFile = async (file: File) => {
+    // Validate file type
+    const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif'];
+    if (!validTypes.includes(file.type)) {
+      setError('Please upload a valid image file (PNG, JPEG, WebP, or GIF)');
+      return;
+    }
 
     setIsUploading(true);
     setError(null);
@@ -262,7 +267,7 @@ export function ImagePlaceholder({
       setSlots(prev => ({ ...prev, uploaded: data.url }));
       setActiveSlot('uploaded');
       cacheImage(cacheKey, data.url);
-      persistSlotUrl('uploaded', data.url); // Persist to localStorage for page refresh
+      persistSlotUrl('uploaded', data.url);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to upload image');
     } finally {
@@ -270,6 +275,51 @@ export function ImagePlaceholder({
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
+    }
+  };
+
+  // Handle file input change
+  const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    await uploadFile(file);
+  };
+
+  // Handle drag & drop - use a counter to handle nested elements
+  const dragCounter = useRef(0);
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current++;
+    if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+      setIsDragging(true);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current--;
+    if (dragCounter.current === 0) {
+      setIsDragging(false);
+    }
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    dragCounter.current = 0;
+
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      await uploadFile(file);
     }
   };
 
@@ -509,15 +559,31 @@ export function ImagePlaceholder({
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="relative w-full aspect-video rounded-xl overflow-hidden group"
+          onDragOver={handleDragOver}
+          onDragEnter={handleDragEnter}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          className={`relative w-full aspect-video rounded-xl overflow-hidden group ${
+            isDragging ? 'ring-2 ring-slide-accent' : ''
+          }`}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={activeImageUrl}
             alt={description}
-            className="absolute inset-0 w-full h-full object-contain bg-black/20"
+            className="absolute inset-0 w-full h-full object-contain"
             loading="lazy"
           />
+
+          {/* Drag overlay */}
+          {isDragging && (
+            <div className="absolute inset-0 bg-slide-accent/30 flex items-center justify-center z-50">
+              <div className="flex flex-col items-center gap-2 text-white">
+                <Upload className="w-10 h-10" />
+                <span className="text-sm font-medium">Drop to replace</span>
+              </div>
+            </div>
+          )}
 
           {/* Slot indicator + picker (top left) */}
           {!isPresenting && activeSlot && (
@@ -656,11 +722,20 @@ export function ImagePlaceholder({
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
+        onDragOver={handleDragOver}
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
         className={`
           relative w-full aspect-video rounded-xl
-          bg-slide-surface/30 border-2 border-dashed border-slide-accent/30
+          border-2 border-dashed
           flex flex-col items-center justify-center gap-4
+          transition-colors duration-150
           ${isPresenting ? 'p-8' : 'p-4'}
+          ${isDragging
+            ? 'bg-slide-accent/20 border-slide-accent'
+            : 'bg-slide-surface/30 border-slide-accent/30'
+          }
         `}
       >
         {isCheckingCache ? (
@@ -701,6 +776,13 @@ export function ImagePlaceholder({
               </button>
             </div>
           </>
+        ) : isDragging ? (
+          <>
+            <Upload className={`${isPresenting ? 'w-16 h-16' : 'w-10 h-10'} text-slide-accent`} />
+            <p className={`text-slide-accent ${isPresenting ? 'text-xl' : 'text-sm'} font-medium`}>
+              Drop image here
+            </p>
+          </>
         ) : (
           <>
             <ImageIcon className={`${isPresenting ? 'w-16 h-16' : 'w-10 h-10'} text-slide-muted/50`} />
@@ -710,7 +792,10 @@ export function ImagePlaceholder({
             </p>
 
             {!isPresenting && (
-              <div className="flex items-center gap-1 px-1.5 py-1.5 bg-black/90 backdrop-blur-sm rounded-lg border border-white/10">
+              <div
+                className="flex items-center gap-1 px-1.5 py-1.5 rounded-lg border border-white/10"
+                style={{ backgroundColor: 'rgba(0, 0, 0, 0.95)' }}
+              >
                 {/* Generate split button */}
                 <div className="relative flex items-center">
                   <button
@@ -742,31 +827,27 @@ export function ImagePlaceholder({
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -4 }}
                             transition={{ duration: 0.1 }}
-                            className="w-48 rounded-lg shadow-2xl overflow-hidden isolate"
+                            className="w-48 rounded-lg shadow-2xl overflow-hidden"
                             style={{
                               backgroundColor: '#09090b',
                               border: '1px solid #27272a',
                             }}
                           >
-                            <div
-                              className="px-2.5 py-1.5 border-b border-[#27272a]"
-                              style={{ backgroundColor: '#09090b' }}
-                            >
-                              <p className="text-[10px] text-[#71717a] uppercase tracking-wider">Generate with style</p>
-                            </div>
-                            <div
-                              className="p-1 max-h-48 overflow-y-auto"
-                              style={{ backgroundColor: '#09090b' }}
-                            >
-                              {IMAGE_STYLE_PRESETS.map((preset) => (
-                                <button
-                                  key={preset.id}
-                                  onClick={() => handleGenerate(false, preset.id)}
-                                  className="w-full text-left px-2.5 py-1.5 text-xs text-white/90 hover:text-white hover:bg-white/10 rounded transition-colors"
-                                >
-                                  {preset.name}
-                                </button>
-                              ))}
+                            <div style={{ backgroundColor: '#09090b' }}>
+                              <div className="px-2.5 py-1.5 border-b border-[#27272a]">
+                                <p className="text-[10px] text-[#71717a] uppercase tracking-wider">Generate with style</p>
+                              </div>
+                              <div className="p-1 max-h-48 overflow-y-auto">
+                                {IMAGE_STYLE_PRESETS.map((preset) => (
+                                  <button
+                                    key={preset.id}
+                                    onClick={() => handleGenerate(false, preset.id)}
+                                    className="w-full text-left px-2.5 py-1.5 text-xs text-white/90 hover:text-white hover:bg-white/10 rounded transition-colors"
+                                  >
+                                    {preset.name}
+                                  </button>
+                                ))}
+                              </div>
                             </div>
                           </motion.div>
                         </div>
