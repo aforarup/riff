@@ -178,8 +178,9 @@ Each slide is separated by \`---\` on its own line.
    - Aim for 3-5 bullet points maximum per slide
    - Use **pause** to reveal points progressively for complex slides
    - Break dense content into multiple slides
-   - If image is placed, keep one or two lines of text below it. Not more.
-   - Do not bother about number of slides, focus on creating a visually engaging presentation.
+   - **IMPORTANT** If image is placed, keep one or two lines of text below it. Not more.
+   - Never use bullets & image in a same slide.
+   - Do not worry about number of slides, just focus on creating a visually engaging presentation.
 
 4. **VISUAL RICHNESS (CRITICAL)**:
    - Add [image: description] on AT LEAST every 2-3 slides - presentations need visuals!
@@ -187,7 +188,7 @@ Each slide is separated by \`---\` on its own line.
      - Good: "[image: A developer celebrating with arms raised as green checkmarks appear on multiple monitors]"
      - Good: "[image: Split comparison showing chaotic manual process on left vs streamlined automated workflow on right]"
      - Bad: "[image: technology]" or "[image: success]"
-   - Use [section] + background effects ([bg:glow-bottom-left], [bg:grid-center]) on section headers
+   - Never use [section] with background effects ([bg:glow-bottom-left], [bg:grid-center]) on section headers. Use it only for section headers.
    - Apply text effects ([anvil], [typewriter], [glow]) on impactful or dramatic titles
    - Use \`highlighted text\` for key terms and important concepts
 
@@ -208,7 +209,6 @@ Each slide is separated by \`---\` on its own line.
 
 \`\`\`markdown
 [section]
-[bg:glow-center]
 
 # Introduction to Machine Learning [anvil]
 
@@ -217,6 +217,9 @@ Each slide is separated by \`---\` on its own line.
 ---
 
 [image: A diverse team of data scientists collaborating around holographic data visualizations in a modern office]
+
+---
+[bg:grid-center]
 
 # What We'll Cover
 
@@ -237,11 +240,11 @@ Each slide is separated by \`---\` on its own line.
 ---
 
 [section]
-[bg:grid-bottom-right]
 
 # Part 1: The Basics [typewriter]
 
 ---
+[bg:grid-bottom-right]
 
 [image: Split screen showing traditional programming with explicit rules on left, versus ML system learning from data patterns on right]
 
@@ -255,6 +258,9 @@ Each slide is separated by \`---\` on its own line.
 
 [image: A robot sitting at a desk surrounded by books and papers, absorbing information with glowing neural pathways]
 
+## Training Process
+---
+[bg:grid-center]
 # Training Process
 
 **pause**
