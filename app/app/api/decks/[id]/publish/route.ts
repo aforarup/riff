@@ -1,14 +1,17 @@
 // ============================================
 // API: /api/decks/[id]/publish
 // Publish current deck state to the shared view
+// With silent repair: recovers image URLs from localStorage
 // ============================================
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { getDeckContent, getTheme } from '@/lib/blob';
+import { getDeckContent, getTheme, updateDeckBlob } from '@/lib/blob';
 import { nanoid } from 'nanoid';
+import { extractFrontmatter, updateImageInManifest } from '@/lib/parser';
+import { ImageSlot } from '@/lib/types';
 
 // POST: Publish current deck state
 export async function POST(
@@ -23,6 +26,15 @@ export async function POST(
 
     const deckId = params.id;
 
+    // Parse request body for image URLs
+    let imageUrls: Record<string, string> = {};
+    try {
+      const body = await request.json();
+      imageUrls = body.imageUrls || {};
+    } catch {
+      // No body or invalid JSON - that's fine
+    }
+
     // Get deck with ownership check
     const deck = await prisma.deck.findFirst({
       where: {
@@ -36,7 +48,7 @@ export async function POST(
     }
 
     // Get current content from blob
-    const content = await getDeckContent(deck.blobUrl);
+    let content = await getDeckContent(deck.blobUrl);
     if (!content) {
       return NextResponse.json(
         { error: 'Deck content not found' },
@@ -44,8 +56,50 @@ export async function POST(
       );
     }
 
+    // === SILENT REPAIR ===
+    // Merge localStorage image URLs into frontmatter if they're missing
+    // This recovers images for decks created before frontmatter was added
+    if (Object.keys(imageUrls).length > 0) {
+      const { frontmatter } = extractFrontmatter(content);
+      const existingManifest = frontmatter.images || {};
+
+      // Parse localStorage keys: 'vibe-image-{slot}:{description}'
+      for (const [key, url] of Object.entries(imageUrls)) {
+        if (key === '__imageStyle__') continue; // Skip the style setting
+
+        // Extract slot and description from key
+        const match = key.match(/^vibe-image-(generated|uploaded|restyled):(.+)$/);
+        if (!match) continue;
+
+        const slot = match[1] as ImageSlot;
+        const description = match[2];
+
+        // Check if this image is already in frontmatter
+        const existingEntry = existingManifest[description];
+        if (existingEntry?.[slot]) continue; // Already have this URL
+
+        // Add to frontmatter
+        content = updateImageInManifest(content, description, slot, url, !existingEntry);
+      }
+
+      // Save repaired content back to blob and update deck record
+      const originalContent = await getDeckContent(deck.blobUrl);
+      if (content !== originalContent) {
+        const newBlobUrl = await updateDeckBlob(deck.blobPath, content);
+        await prisma.deck.update({
+          where: { id: deckId },
+          data: { blobUrl: newBlobUrl, updatedAt: new Date() },
+        });
+      }
+    }
+
     // Get current theme (may be null)
     const theme = await getTheme(session.user.id, deckId);
+
+    // Add image URLs to theme data for persistence (for backward compat with ImageUrlHydrator)
+    const themeWithImages = theme
+      ? { ...theme, imageUrls }
+      : { imageUrls };
 
     // If no share token exists, create one
     let shareToken = deck.shareToken;
@@ -59,7 +113,7 @@ export async function POST(
       data: {
         shareToken,
         publishedContent: content,
-        publishedTheme: theme ? JSON.stringify(theme) : null,
+        publishedTheme: JSON.stringify(themeWithImages),
         publishedAt: new Date(),
       },
     });

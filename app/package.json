@@ -24,6 +24,7 @@
     "ai": "^5.0.108",
     "clsx": "^2.1.1",
     "framer-motion": "^11.11.0",
+    "js-yaml": "^4.1.1",
     "lucide-react": "^0.460.0",
     "nanoid": "^5.1.6",
     "next": "14.2.16",
@@ -35,6 +36,7 @@
     "zustand": "^5.0.0"
   },
   "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "^22.9.0",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",

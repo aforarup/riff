@@ -3,7 +3,113 @@
 // ============================================
 // Parses the custom slide format into structured data
 
-import { Slide, SlideElement, ParsedDeck, DeckMetadata, TextEffect, BackgroundEffect, BackgroundEffectType, BackgroundPosition, BackgroundColor } from './types';
+import yaml from 'js-yaml';
+import { Slide, SlideElement, ParsedDeck, DeckMetadata, TextEffect, BackgroundEffect, BackgroundEffectType, BackgroundPosition, BackgroundColor, ImageManifest, ImageManifestEntry, ImageSlot } from './types';
+
+// ============================================
+// Frontmatter Extraction
+// ============================================
+
+interface Frontmatter {
+  images?: ImageManifest;
+}
+
+/**
+ * Extract YAML frontmatter from markdown content
+ */
+export function extractFrontmatter(content: string): { frontmatter: Frontmatter; body: string } {
+  const match = content.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
+  if (!match) {
+    return { frontmatter: {}, body: content };
+  }
+
+  try {
+    const frontmatter = yaml.load(match[1]) as Frontmatter || {};
+    return { frontmatter, body: match[2] };
+  } catch {
+    // Invalid YAML, return content as-is
+    return { frontmatter: {}, body: content };
+  }
+}
+
+/**
+ * Serialize frontmatter back to YAML string
+ */
+function serializeFrontmatter(frontmatter: Frontmatter): string {
+  if (!frontmatter || Object.keys(frontmatter).length === 0) {
+    return '';
+  }
+  return `---\n${yaml.dump(frontmatter, { lineWidth: -1 })}---\n`;
+}
+
+/**
+ * Update an image URL in the manifest and return new markdown content
+ */
+export function updateImageInManifest(
+  content: string,
+  description: string,
+  slot: ImageSlot,
+  url: string,
+  setActive: boolean = true
+): string {
+  const { frontmatter, body } = extractFrontmatter(content);
+
+  // Initialize images if not present
+  frontmatter.images = frontmatter.images || {};
+
+  // Initialize entry for this description if not present
+  if (!frontmatter.images[description]) {
+    frontmatter.images[description] = { active: slot };
+  }
+
+  // Update the slot URL
+  frontmatter.images[description][slot] = url;
+
+  // Update active slot if requested
+  if (setActive) {
+    frontmatter.images[description].active = slot;
+  }
+
+  return serializeFrontmatter(frontmatter) + body;
+}
+
+/**
+ * Update only the active slot for an image (when switching variants)
+ */
+export function setActiveImageSlot(
+  content: string,
+  description: string,
+  slot: ImageSlot
+): string {
+  const { frontmatter, body } = extractFrontmatter(content);
+
+  if (frontmatter.images?.[description]) {
+    frontmatter.images[description].active = slot;
+  }
+
+  return serializeFrontmatter(frontmatter) + body;
+}
+
+/**
+ * Remove an image from the manifest
+ */
+export function removeImageFromManifest(
+  content: string,
+  description: string
+): string {
+  const { frontmatter, body } = extractFrontmatter(content);
+
+  if (frontmatter.images?.[description]) {
+    delete frontmatter.images[description];
+  }
+
+  // Clean up empty images object
+  if (frontmatter.images && Object.keys(frontmatter.images).length === 0) {
+    delete frontmatter.images;
+  }
+
+  return serializeFrontmatter(frontmatter) + body;
+}
 
 // Valid text effects that can be applied via [effect] syntax
 const VALID_EFFECTS: TextEffect[] = ['anvil', 'typewriter', 'glow', 'shake'];
@@ -99,7 +205,11 @@ function extractEffect(content: string): { content: string; effect?: TextEffect 
  */
 
 export function parseSlideMarkdown(markdown: string): ParsedDeck {
-  const lines = markdown.split('\n');
+  // Extract frontmatter first
+  const { frontmatter, body } = extractFrontmatter(markdown);
+  const imageManifest: ImageManifest = frontmatter.images || {};
+
+  const lines = body.split('\n');
   const slides: Slide[] = [];
   const sections: string[] = [];
 
@@ -347,7 +457,7 @@ export function parseSlideMarkdown(markdown: string): ParsedDeck {
     imageCount: slides.reduce((acc, s) => acc + s.imageDescriptions.length, 0),
   };
 
-  return { slides, metadata };
+  return { slides, metadata, imageManifest };
 }
 
 /**

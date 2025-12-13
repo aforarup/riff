@@ -5,7 +5,7 @@
 // ============================================
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { Slide, SlideElement } from '@/lib/types';
+import { Slide, SlideElement, ImageManifest, ImageSlot } from '@/lib/types';
 import { getVisibleElements } from '@/lib/parser';
 import { ImagePlaceholder } from './ImagePlaceholder';
 import { RetroGrid } from './ui/retro-grid';
@@ -15,9 +15,19 @@ interface SlideRendererProps {
   slide: Slide;
   revealStep: number;
   isPresenting?: boolean;
+  imageManifest?: ImageManifest;
+  onImageChange?: (description: string, slot: ImageSlot, url: string) => void;
+  onActiveSlotChange?: (description: string, slot: ImageSlot) => void;
 }
 
-export function SlideRenderer({ slide, revealStep, isPresenting = false }: SlideRendererProps) {
+export function SlideRenderer({
+  slide,
+  revealStep,
+  isPresenting = false,
+  imageManifest,
+  onImageChange,
+  onActiveSlotChange,
+}: SlideRendererProps) {
   const visibleElements = getVisibleElements(slide, revealStep);
 
   // Section header slides get special treatment
@@ -49,6 +59,9 @@ export function SlideRenderer({ slide, revealStep, isPresenting = false }: Slide
                 element={element}
                 index={index}
                 isPresenting={isPresenting}
+                imageManifest={imageManifest}
+                onImageChange={onImageChange}
+                onActiveSlotChange={onActiveSlotChange}
               />
             ))}
           </AnimatePresence>
@@ -85,6 +98,9 @@ export function SlideRenderer({ slide, revealStep, isPresenting = false }: Slide
               element={element}
               index={index}
               isPresenting={isPresenting}
+              imageManifest={imageManifest}
+              onImageChange={onImageChange}
+              onActiveSlotChange={onActiveSlotChange}
             />
           ))}
         </AnimatePresence>
@@ -106,9 +122,19 @@ interface ElementRendererProps {
   element: SlideElement;
   index: number;
   isPresenting: boolean;
+  imageManifest?: ImageManifest;
+  onImageChange?: (description: string, slot: ImageSlot, url: string) => void;
+  onActiveSlotChange?: (description: string, slot: ImageSlot) => void;
 }
 
-function ElementRenderer({ element, index, isPresenting }: ElementRendererProps) {
+function ElementRenderer({
+  element,
+  index,
+  isPresenting,
+  imageManifest,
+  onImageChange,
+  onActiveSlotChange,
+}: ElementRendererProps) {
   // Get effect class from metadata (e.g. "effect-anvil" for [anvil] decorator)
   const effectClass = element.metadata?.effect ? `effect-${element.metadata.effect}` : '';
 
@@ -183,6 +209,9 @@ function ElementRenderer({ element, index, isPresenting }: ElementRendererProps)
               imageUrl={element.metadata?.imageUrl}
               status={element.metadata?.imageStatus}
               isPresenting={isPresenting}
+              manifestEntry={imageManifest?.[element.content]}
+              onImageChange={onImageChange ? (slot, url) => onImageChange(element.content, slot, url) : undefined}
+              onActiveSlotChange={onActiveSlotChange ? (slot) => onActiveSlotChange(element.content, slot) : undefined}
             />
           </div>
         );
@@ -256,7 +285,14 @@ function ElementRenderer({ element, index, isPresenting }: ElementRendererProps)
 // Section Element Renderer (bolder/larger for section headers)
 // ============================================
 
-function SectionElementRenderer({ element, index, isPresenting }: ElementRendererProps) {
+function SectionElementRenderer({
+  element,
+  index,
+  isPresenting,
+  imageManifest,
+  onImageChange,
+  onActiveSlotChange,
+}: ElementRendererProps) {
   // Get effect class from metadata (e.g. "effect-anvil" for [anvil] decorator)
   const effectClass = element.metadata?.effect ? `effect-${element.metadata.effect}` : '';
 

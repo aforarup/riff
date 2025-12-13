@@ -19,17 +19,18 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { useStore } from '@/lib/store';
-import { IMAGE_STYLE_PRESETS } from '@/lib/types';
+import { IMAGE_STYLE_PRESETS, ImageManifestEntry, ImageSlot } from '@/lib/types';
 
 interface ImagePlaceholderProps {
   description: string;
   imageUrl?: string;
   status?: 'pending' | 'generating' | 'ready' | 'error';
   isPresenting?: boolean;
+  // New props for manifest-based persistence
+  manifestEntry?: ImageManifestEntry;
+  onImageChange?: (slot: ImageSlot, url: string) => void;
+  onActiveSlotChange?: (slot: ImageSlot) => void;
 }
-
-// Three separate slots for images
-type ImageSlot = 'generated' | 'uploaded' | 'restyled';
 
 interface ImageSlots {
   generated?: string;
@@ -42,6 +43,9 @@ export function ImagePlaceholder({
   imageUrl,
   status = 'pending',
   isPresenting = false,
+  manifestEntry,
+  onImageChange,
+  onActiveSlotChange,
 }: ImagePlaceholderProps) {
   // Image slots - each can have its own URL
   const [slots, setSlots] = useState<ImageSlots>({});
@@ -103,8 +107,22 @@ export function ImagePlaceholder({
   // Count available slots
   const availableSlots = Object.entries(slots).filter(([_, url]) => url).map(([slot]) => slot as ImageSlot);
 
-  // Auto-check all slot caches on mount
+  // Auto-check all slot caches on mount OR use manifestEntry if provided
   useEffect(() => {
+    // If manifestEntry is provided, use it directly (from frontmatter)
+    if (manifestEntry) {
+      setSlots({
+        generated: manifestEntry.generated,
+        uploaded: manifestEntry.uploaded,
+        restyled: manifestEntry.restyled,
+      });
+      setActiveSlot(manifestEntry.active);
+      setIsCheckingCache(false);
+      cacheChecked.current = true;
+      return;
+    }
+
+    // Fall back to cache checking for decks without frontmatter
     if (cacheChecked.current) {
       setIsCheckingCache(false);
       return;
@@ -192,7 +210,7 @@ export function ImagePlaceholder({
     };
 
     checkAllCaches();
-  }, [description, imageCache, cacheImage, getPersistedSlotUrl]);
+  }, [description, imageCache, cacheImage, getPersistedSlotUrl, manifestEntry]);
 
   // Generate new image with optional style override
   const handleGenerate = async (forceRegenerate = false, styleOverride?: string) => {
@@ -225,6 +243,8 @@ export function ImagePlaceholder({
         setSlots(prev => ({ ...prev, generated: data.url }));
         setActiveSlot('generated');
         cacheImage(cacheKey, data.url);
+        // Notify parent to persist to frontmatter
+        onImageChange?.('generated', data.url);
       } else if (data.placeholder) {
         setError(data.message || 'Image generation not available');
       }
@@ -268,6 +288,8 @@ export function ImagePlaceholder({
       setActiveSlot('uploaded');
       cacheImage(cacheKey, data.url);
       persistSlotUrl('uploaded', data.url);
+      // Notify parent to persist to frontmatter
+      onImageChange?.('uploaded', data.url);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to upload image');
     } finally {
@@ -353,6 +375,8 @@ export function ImagePlaceholder({
       setActiveSlot('restyled');
       cacheImage(cacheKey, data.url);
       persistSlotUrl('restyled', data.url); // Persist to localStorage for page refresh
+      // Notify parent to persist to frontmatter
+      onImageChange?.('restyled', data.url);
       setShowRestyleModal(false);
       setCustomPrompt('');
       setSelectedPreset(null);
@@ -406,6 +430,8 @@ export function ImagePlaceholder({
                 onClick={() => {
                   setActiveSlot(slot);
                   setShowSlotPicker(false);
+                  // Notify parent to update active slot in frontmatter
+                  onActiveSlotChange?.(slot);
                 }}
                 className={`flex items-center gap-2 w-full px-3 py-2 rounded-md text-left text-sm transition-colors ${
                   activeSlot === slot

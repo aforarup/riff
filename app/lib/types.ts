@@ -122,6 +122,19 @@ export interface BackgroundEffect {
   color?: BackgroundColor; // defaults to 'accent' (theme color)
 }
 
+// Image manifest entry for frontmatter storage
+export type ImageSlot = 'generated' | 'uploaded' | 'restyled';
+
+export interface ImageManifestEntry {
+  generated?: string;
+  uploaded?: string;
+  restyled?: string;
+  active: ImageSlot;
+}
+
+// Image manifest maps description to its URLs
+export type ImageManifest = Record<string, ImageManifestEntry>;
+
 export interface SlideElement {
   type: SlideElementType;
   content: string;
@@ -139,6 +152,7 @@ export interface SlideElement {
 export interface ParsedDeck {
   slides: Slide[];
   metadata: DeckMetadata;
+  imageManifest: ImageManifest; // Map of image descriptions to their URLs
 }
 
 export interface DeckMetadata {

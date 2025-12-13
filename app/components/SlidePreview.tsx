@@ -23,6 +23,7 @@ import { SlideGeneratorSettings } from './SlideGeneratorSettings';
 import { ThemeCustomizer } from './ThemeCustomizer';
 import { ImageStyleSelector } from './ImageStyleSelector';
 import { countReveals } from '@/lib/parser';
+import { ImageSlot } from '@/lib/types';
 
 interface SlidePreviewProps {
   deckId: string;
@@ -30,6 +31,8 @@ interface SlidePreviewProps {
   onGenerateTheme?: (prompt: string, systemPrompt?: string) => Promise<void>;
   onResetTheme?: () => void;
   isGeneratingTheme?: boolean;
+  onImageChange?: (description: string, slot: ImageSlot, url: string) => void;
+  onActiveSlotChange?: (description: string, slot: ImageSlot) => void;
 }
 
 export function SlidePreview({
@@ -38,6 +41,8 @@ export function SlidePreview({
   onGenerateTheme,
   onResetTheme,
   isGeneratingTheme = false,
+  onImageChange,
+  onActiveSlotChange,
 }: SlidePreviewProps) {
   const {
     parsedDeck,
@@ -120,6 +125,9 @@ export function SlidePreview({
             slide={currentSlide}
             revealStep={presentation.currentReveal}
             isPresenting={false}
+            imageManifest={parsedDeck.imageManifest}
+            onImageChange={onImageChange}
+            onActiveSlotChange={onActiveSlotChange}
           />
         )}
 

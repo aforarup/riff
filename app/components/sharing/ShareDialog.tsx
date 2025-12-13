@@ -18,6 +18,7 @@ import {
   Trash2,
   Code2,
   ChevronDown,
+  ExternalLink,
 } from 'lucide-react';
 
 interface ShareDialogProps {
@@ -98,11 +99,43 @@ export function ShareDialog({ deckId, deckName, isOpen, onClose }: ShareDialogPr
     }
   };
 
+  // Collect all image URLs from localStorage for publishing
+  const collectImageUrls = (): Record<string, string> => {
+    const imageUrls: Record<string, string> = {};
+    if (typeof window === 'undefined') return imageUrls;
+
+    // Scan localStorage for all image URLs
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key?.startsWith('vibe-image-')) {
+        const url = localStorage.getItem(key);
+        if (url) {
+          // Convert key from 'vibe-image-slot:description' to just the cache key
+          imageUrls[key] = url;
+        }
+      }
+    }
+
+    // Also get the current image style setting
+    const imageStyle = localStorage.getItem('vibe-slides-image-style') || 'none';
+    imageUrls['__imageStyle__'] = imageStyle;
+
+    return imageUrls;
+  };
+
   const handlePublish = async () => {
     try {
       setPublishing(true);
       setError(null);
-      const res = await fetch(`/api/decks/${deckId}/publish`, { method: 'POST' });
+
+      // Collect image URLs to include with publish
+      const imageUrls = collectImageUrls();
+
+      const res = await fetch(`/api/decks/${deckId}/publish`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageUrls }),
+      });
       if (!res.ok) throw new Error('Failed to publish');
       const data = await res.json();
       setStatus((prev) => prev ? {
@@ -256,7 +289,7 @@ export function ShareDialog({ deckId, deckName, isOpen, onClose }: ShareDialogPr
                 ) : (
                   // Shared - show link and controls
                   <div className="space-y-4">
-                    {/* Link input */}
+                    {/* Link input with copy */}
                     <div className="flex items-center gap-2">
                       <input
                         type="text"
@@ -273,12 +306,12 @@ export function ShareDialog({ deckId, deckName, isOpen, onClose }: ShareDialogPr
                         ) : (
                           <Copy className="w-4 h-4" />
                         )}
-                        <span className="sr-only sm:not-sr-only">{copied ? 'Copied' : 'Copy'}</span>
+                        {copied ? 'Copied' : 'Copy'}
                       </button>
                     </div>
 
-                    {/* Status */}
-                    <div className={`rounded-md border p-3 ${
+                    {/* Status with preview */}
+                    <div className={`rounded-md border px-3 py-2 ${
                       status.isPublished
                         ? 'bg-emerald-500/10 border-emerald-500/20'
                         : 'bg-amber-500/10 border-amber-500/20'
@@ -291,6 +324,15 @@ export function ShareDialog({ deckId, deckName, isOpen, onClose }: ShareDialogPr
                             <span className="text-xs text-emerald-400/70">
                               · Published {formatRelativeTime(status.publishedAt!)}
                             </span>
+                            <a
+                              href={status.shareUrl || '#'}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="ml-auto flex items-center gap-1.5 text-xs text-emerald-400/70 hover:text-emerald-400 transition-colors"
+                            >
+                              Preview
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </a>
                           </>
                         ) : (
                           <>
@@ -300,7 +342,7 @@ export function ShareDialog({ deckId, deckName, isOpen, onClose }: ShareDialogPr
                         )}
                       </div>
                       {!status.isPublished && (
-                        <p className="text-xs text-amber-400/70 mt-1.5 ml-4">
+                        <p className="text-xs text-amber-400/70 mt-1 ml-4">
                           Link won't work until you publish
                         </p>
                       )}

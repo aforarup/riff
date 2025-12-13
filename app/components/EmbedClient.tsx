@@ -126,6 +126,7 @@ export function EmbedClient({
             slide={slide}
             revealStep={currentReveal}
             isPresenting={true}
+            imageManifest={deck.imageManifest}
           />
         )}
       </div>

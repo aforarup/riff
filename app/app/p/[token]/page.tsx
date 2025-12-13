@@ -8,6 +8,8 @@ import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import { parseSlideMarkdown } from '@/lib/parser';
 import { PresenterClient } from '@/app/present/[id]/client';
+import { RiffBadge } from '@/components/RiffBadge';
+import { ImageUrlHydrator } from '@/components/ImageUrlHydrator';
 
 // Disable caching - always fetch fresh published content
 export const dynamic = 'force-dynamic';
@@ -93,25 +95,31 @@ export default async function SharedPresentationPage({ params, searchParams }: P
   // Parse theme if available
   let themeCSS: string | undefined;
   let themePrompt: string | undefined;
+  let imageUrls: Record<string, string> = {};
 
   if (deck.publishedTheme) {
     try {
       const theme = JSON.parse(deck.publishedTheme);
       themeCSS = theme.css;
       themePrompt = theme.prompt;
+      imageUrls = theme.imageUrls || {};
     } catch {
       // Invalid theme JSON, ignore
     }
   }
 
   return (
-    <PresenterClient
-      deck={parsedDeck}
-      deckId={deck.id}
-      initialSlide={initialSlide}
-      themeCSS={themeCSS}
-      themePrompt={themePrompt}
-      isSharedView={true}
-    />
+    <>
+      <ImageUrlHydrator imageUrls={imageUrls} />
+      <PresenterClient
+        deck={parsedDeck}
+        deckId={deck.id}
+        initialSlide={initialSlide}
+        themeCSS={themeCSS}
+        themePrompt={themePrompt}
+        isSharedView={true}
+      />
+      <RiffBadge />
+    </>
   );
 }

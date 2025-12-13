@@ -4,7 +4,7 @@
 
 ## Summary
 
-Implemented comprehensive sharing and embedding features for Riff presentations. Users can now share decks with rich social previews (themed OG images) and embed presentations anywhere via iframe. Created the Embed Lab test page for local development.
+Implemented comprehensive sharing and embedding features for Riff presentations. Users can now share decks with rich social previews (themed OG images) and embed presentations anywhere via iframe. Created the Embed Lab test page for local development. Added "Made with Riff" branding badge for shared presentations.
 
 ## Problem Statement
 
@@ -77,6 +77,7 @@ Returns rich embed data for platforms like Medium, Notion, etc.
 - Collapsible "Embed this presentation" section (visible after publish)
 - Size selector: Small (480x270), Medium (640x360), Large (960x540)
 - Code preview with copy button
+- Preview button (ExternalLink icon) to open share URL in new tab
 
 ### 6. Enhanced Metadata
 
@@ -99,6 +100,20 @@ Added:
 - All embed sizes displayed
 - Quick links to all endpoints
 - Beautiful dark theme matching Riff aesthetic
+
+### 8. "Made with Riff" Badge
+
+**Files Created:**
+- `components/RiffBadge.tsx` - Floating branding badge
+
+**Features:**
+- Fixed position (bottom-right corner)
+- Glass-morphism design with dark gradient background
+- Animated 4-square Riff icon (glows amber on hover)
+- Playfair Display typography
+- Smooth entrance animation (1.5s delay)
+- Links to riff.im on click
+- Subtle arrow indicator on hover
 
 ## Technical Decisions
 
@@ -131,15 +146,15 @@ Added:
 | `app/p/[token]/twitter-image.tsx` | Twitter card (theme-aware) |
 | `app/embed/[token]/page.tsx` | Embed route |
 | `components/EmbedClient.tsx` | Minimal embed presenter |
+| `components/RiffBadge.tsx` | "Made with Riff" branding badge |
 | `app/api/oembed/route.ts` | oEmbed API |
 | `public/embed-test.html` | Embed Lab test page |
-| `docs/share-feature.md` | Feature documentation |
 
 ### Modified Files
 | File | Changes |
 |------|---------|
-| `app/p/[token]/page.tsx` | Enhanced metadata |
-| `components/sharing/ShareDialog.tsx` | Embed code generator |
+| `app/p/[token]/page.tsx` | Enhanced metadata, RiffBadge integration |
+| `components/sharing/ShareDialog.tsx` | Embed code generator, preview button |
 | `next.config.js` | CORS headers |
 
 ## Testing
@@ -155,3 +170,4 @@ Added:
 - [ ] Test sharing on Twitter, LinkedIn, Slack
 - [ ] Verify oEmbed works on Medium/Notion
 - [ ] Consider adding first-slide preview option for OG images
+- [x] Add "Made with Riff" branding badge to shared presentations

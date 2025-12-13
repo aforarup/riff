@@ -9,7 +9,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { PanelLeftClose, PanelLeft, X, Loader2, Plus, FileSymlink, LayoutGrid, Share2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useStore } from '@/lib/store';
-import { parseSlideMarkdown } from '@/lib/parser';
+import { parseSlideMarkdown, updateImageInManifest, setActiveImageSlot } from '@/lib/parser';
+import { ImageSlot } from '@/lib/types';
 import { DeckManager } from '@/components/DeckManager';
 import { SlideEditor } from '@/components/SlideEditor';
 import { SlidePreview } from '@/components/SlidePreview';
@@ -383,6 +384,54 @@ function EditorContent() {
     }
   }, [loadDeck, setDecks, setError]);
 
+  // Handle image change from ImagePlaceholder - update frontmatter and auto-save
+  const handleImageChange = useCallback(async (description: string, slot: ImageSlot, url: string) => {
+    if (!currentDeckId || !currentDeckContent) return;
+
+    // Update the content with the new image URL in frontmatter
+    const newContent = updateImageInManifest(currentDeckContent, description, slot, url, true);
+    updateDeckContent(newContent);
+
+    // Re-parse to update the store
+    const parsed = parseSlideMarkdown(newContent);
+    setParsedDeck(parsed);
+
+    // Auto-save
+    try {
+      await fetch(`/api/decks/${encodeURIComponent(currentDeckId)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: newContent }),
+      });
+    } catch (err) {
+      console.error('Auto-save failed:', err);
+    }
+  }, [currentDeckId, currentDeckContent, updateDeckContent, setParsedDeck]);
+
+  // Handle active slot change - update frontmatter and auto-save
+  const handleActiveSlotChange = useCallback(async (description: string, slot: ImageSlot) => {
+    if (!currentDeckId || !currentDeckContent) return;
+
+    // Update the active slot in frontmatter
+    const newContent = setActiveImageSlot(currentDeckContent, description, slot);
+    updateDeckContent(newContent);
+
+    // Re-parse to update the store
+    const parsed = parseSlideMarkdown(newContent);
+    setParsedDeck(parsed);
+
+    // Auto-save
+    try {
+      await fetch(`/api/decks/${encodeURIComponent(currentDeckId)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: newContent }),
+      });
+    } catch (err) {
+      console.error('Auto-save failed:', err);
+    }
+  }, [currentDeckId, currentDeckContent, updateDeckContent, setParsedDeck]);
+
   return (
     <div className="min-h-screen bg-background text-text-primary">
       {/* Custom theme CSS */}
@@ -501,6 +550,8 @@ function EditorContent() {
                 onGenerateTheme={generateTheme}
                 onResetTheme={resetTheme}
                 isGeneratingTheme={isGeneratingTheme}
+                onImageChange={handleImageChange}
+                onActiveSlotChange={handleActiveSlotChange}
               />
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-text-tertiary">

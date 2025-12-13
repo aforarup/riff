@@ -17,7 +17,7 @@ import {
   Sparkles,
   Layout,
 } from 'lucide-react';
-import { ParsedDeck, SlideRenderMode } from '@/lib/types';
+import { ParsedDeck, SlideRenderMode, ImageSlot } from '@/lib/types';
 import { SlideRenderer } from './SlideRenderer';
 import { GeneratedSlide } from './GeneratedSlide';
 import { countReveals } from '@/lib/parser';
@@ -30,6 +30,8 @@ interface PresenterProps {
   themePrompt?: string;
   initialRenderMode?: SlideRenderMode;
   isSharedView?: boolean;
+  onImageChange?: (description: string, slot: ImageSlot, url: string) => void;
+  onActiveSlotChange?: (description: string, slot: ImageSlot) => void;
 }
 
 export function Presenter({
@@ -40,6 +42,8 @@ export function Presenter({
   themePrompt,
   initialRenderMode = 'standard',
   isSharedView = false,
+  onImageChange,
+  onActiveSlotChange,
 }: PresenterProps) {
   const [currentSlide, setCurrentSlide] = useState(initialSlide);
   const [currentReveal, setCurrentReveal] = useState(0);
@@ -191,6 +195,9 @@ export function Presenter({
               slide={slide}
               revealStep={currentReveal}
               isPresenting={true}
+              imageManifest={deck.imageManifest}
+              onImageChange={onImageChange}
+              onActiveSlotChange={onActiveSlotChange}
             />
           )
         )}
@@ -355,7 +362,12 @@ export function Presenter({
                     `}
                   >
                     <div className="absolute inset-0 transform scale-[0.2] origin-top-left w-[500%] h-[500%]">
-                      <SlideRenderer slide={s} revealStep={999} isPresenting={false} />
+                      <SlideRenderer
+                        slide={s}
+                        revealStep={999}
+                        isPresenting={false}
+                        imageManifest={deck.imageManifest}
+                      />
                     </div>
                     <div className="absolute bottom-1 right-1 px-2 py-0.5 bg-black/60 rounded text-xs text-white/70">
                       {index + 1}

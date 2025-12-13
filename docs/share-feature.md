@@ -43,6 +43,7 @@ Full-featured presentation viewer for shared decks.
 - Theme support (published theme applied)
 - Keyboard shortcuts, fullscreen, slide overview
 - No authentication required
+- "Made with Riff" branding badge (bottom-right)
 
 ### 2. Dynamic OG Images
 
@@ -152,6 +153,7 @@ The share dialog includes an embed code generator that appears after publishing.
 - Size selector: Small (480x270), Medium (640x360), Large (960x540)
 - Code preview with syntax highlighting
 - One-click copy button
+- Preview button (opens share URL in new tab)
 
 **Generated Code:**
 ```html
@@ -165,7 +167,28 @@ The share dialog includes an embed code generator that appears after publishing.
 </iframe>
 ```
 
-### 7. Embed Lab (Test Page)
+### 7. "Made with Riff" Badge
+
+A floating branding badge appears on all shared presentations.
+
+**File:** `components/RiffBadge.tsx`
+
+**Features:**
+- Fixed position (bottom-right corner)
+- Glass-morphism design with dark gradient background
+- Animated 4-square Riff icon (glows amber on hover)
+- Playfair Display typography
+- Smooth entrance animation (1.5s delay)
+- Links to riff.im on click
+- Subtle arrow indicator on hover
+
+**Design Details:**
+- Multi-layered shadows for depth
+- Backdrop blur effect
+- Staggered icon animation on hover
+- Non-intrusive but memorable branding
+
+### 8. Embed Lab (Test Page)
 
 A developer tool for testing embed functionality locally.
 
@@ -188,6 +211,7 @@ A developer tool for testing embed functionality locally.
 | `app/p/[token]/twitter-image.tsx` | Twitter card image generator (theme-aware) |
 | `app/embed/[token]/page.tsx` | Embed route page |
 | `components/EmbedClient.tsx` | Minimal embed viewer component |
+| `components/RiffBadge.tsx` | "Made with Riff" floating branding badge |
 | `app/api/oembed/route.ts` | oEmbed API endpoint |
 | `public/embed-test.html` | Embed Lab test page |
 
@@ -195,8 +219,8 @@ A developer tool for testing embed functionality locally.
 
 | File | Changes |
 |------|---------|
-| `app/p/[token]/page.tsx` | Enhanced OG/Twitter metadata |
-| `components/sharing/ShareDialog.tsx` | Added embed code generator section |
+| `app/p/[token]/page.tsx` | Enhanced OG/Twitter metadata, RiffBadge integration |
+| `components/sharing/ShareDialog.tsx` | Embed code generator, preview button |
 | `next.config.js` | Added CORS headers for embed route |
 
 ## API Routes Summary

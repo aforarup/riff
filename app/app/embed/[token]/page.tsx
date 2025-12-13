@@ -8,6 +8,7 @@ import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import { parseSlideMarkdown } from '@/lib/parser';
 import { EmbedClient } from '@/components/EmbedClient';
+import { ImageUrlHydrator } from '@/components/ImageUrlHydrator';
 
 // Disable caching - always fetch fresh published content
 export const dynamic = 'force-dynamic';
@@ -74,21 +75,26 @@ export default async function EmbedPresentationPage({ params, searchParams }: Pa
 
   // Parse theme if available
   let themeCSS: string | undefined;
+  let imageUrls: Record<string, string> = {};
 
   if (deck.publishedTheme) {
     try {
       const theme = JSON.parse(deck.publishedTheme);
       themeCSS = theme.css;
+      imageUrls = theme.imageUrls || {};
     } catch {
       // Invalid theme JSON, ignore
     }
   }
 
   return (
-    <EmbedClient
-      deck={parsedDeck}
-      initialSlide={initialSlide}
-      themeCSS={themeCSS}
-    />
+    <>
+      <ImageUrlHydrator imageUrls={imageUrls} />
+      <EmbedClient
+        deck={parsedDeck}
+        initialSlide={initialSlide}
+        themeCSS={themeCSS}
+      />
+    </>
   );
 }
