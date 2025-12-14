@@ -330,7 +330,7 @@ export function Landing() {
               className="aspect-video max-w-4xl mx-auto rounded-2xl overflow-hidden border border-white/10 shadow-2xl shadow-black/50"
             >
               <iframe
-                src="https://www.riff.im/embed/8uAo54Y_eFy-"
+                src={`/embed/${process.env.NEXT_PUBLIC_SHOWCASE_DECK_TOKEN || '8uAo54Y_eFy-'}`}
                 className="w-full h-full bg-[#0a0a0a]"
                 frameBorder="0"
                 allowFullScreen

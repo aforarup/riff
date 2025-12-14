@@ -36,14 +36,15 @@ export function EmbedClient({
   const DESIGN_WIDTH = 1280;
   const DESIGN_HEIGHT = 720;
 
-  // Calculate scale to fit content
+  // Calculate scale to fit content with safety margin
   useEffect(() => {
     const updateScale = () => {
       if (!containerRef.current) return;
       const { clientWidth, clientHeight } = containerRef.current;
       const scaleX = clientWidth / DESIGN_WIDTH;
       const scaleY = clientHeight / DESIGN_HEIGHT;
-      setScale(Math.min(scaleX, scaleY, 1)); // Don't scale up, only down
+      // Use 0.92 factor for breathing room (accounts for padding/margins)
+      setScale(Math.min(scaleX, scaleY, 1) * 0.92);
     };
 
     updateScale();
@@ -125,10 +126,11 @@ export function EmbedClient({
 
   return (
     <>
-      {/* Google Fonts for embeds */}
-      <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@400;500;600;700;800&family=Playfair+Display:wght@400;500;600;700&display=swap');
-      `}</style>
+      {/* Google Fonts for embeds - use link tag for reliability */}
+      <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@400;500;600;700;800&family=Playfair+Display:wght@400;500;600;700&display=swap"
+        rel="stylesheet"
+      />
 
       <div
         ref={containerRef}
@@ -141,6 +143,12 @@ export function EmbedClient({
         {/* Inject theme CSS */}
         {themeCSS && <style dangerouslySetInnerHTML={{ __html: themeCSS }} />}
 
+        {/* Override min-h-screen for embed context */}
+        <style dangerouslySetInnerHTML={{ __html: `
+          .embed-slide-container .min-h-screen { min-height: 100% !important; }
+          .embed-slide-container { width: 100%; height: 100%; }
+        `}} />
+
         {/* Main slide - scaled to fit, click to advance */}
         <div
           ref={slideRef}
@@ -152,6 +160,7 @@ export function EmbedClient({
           }}
         >
           <div
+            className="embed-slide-container"
             style={{
               width: DESIGN_WIDTH,
               height: DESIGN_HEIGHT,
