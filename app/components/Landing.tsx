@@ -112,33 +112,39 @@ export function Landing() {
                 Riff
               </span>
             </Link>
-            <div className="flex items-center gap-6">
-              <a
-                href="#demo"
-                className="text-[13px] text-white/50 hover:text-white transition-colors duration-200"
-              >
-                Demo
-              </a>
-              <a
-                href="#features"
-                className="text-[13px] text-white/50 hover:text-white transition-colors duration-200"
-              >
-                Features
-              </a>
-              <a
-                href="#syntax"
-                className="text-[13px] text-white/50 hover:text-white transition-colors duration-200"
-              >
-                Syntax
-              </a>
+            <div className="flex items-center gap-2">
+              {/* Desktop nav links - hidden on mobile */}
+              <div className="hidden md:flex items-center gap-1 mr-2">
+                <a
+                  href="#demo"
+                  className="px-3 py-1.5 rounded-md text-[13px] text-white/50 hover:text-white hover:bg-white/5 transition-all duration-200"
+                >
+                  Demo
+                </a>
+                <a
+                  href="#features"
+                  className="px-3 py-1.5 rounded-md text-[13px] text-white/50 hover:text-white hover:bg-white/5 transition-all duration-200"
+                >
+                  Features
+                </a>
+                <a
+                  href="#syntax"
+                  className="px-3 py-1.5 rounded-md text-[13px] text-white/50 hover:text-white hover:bg-white/5 transition-all duration-200"
+                >
+                  Syntax
+                </a>
+              </div>
+
+              {/* Editor button - always visible */}
               <Link
                 href="/editor"
-                className="inline-flex items-center gap-2 text-[13px] text-white/50 hover:text-white transition-colors duration-200"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[13px] text-white/70 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 transition-all duration-200"
               >
-                <PanelLeft className="w-4 h-4" />
-                <span>Editor</span>
+                <PanelLeft className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Editor</span>
               </Link>
 
+              {/* User avatar/sign in */}
               {session ? (
                 <Link
                   href="/editor"
@@ -598,12 +604,17 @@ export function Landing() {
 
         {/* Footer */}
         <footer className="py-8 px-6 border-t border-white/[0.05]">
-          <div className="max-w-6xl mx-auto flex items-center justify-between text-[13px] text-white/30">
+          <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-[13px] text-white/30">
             <div className="flex items-center gap-2.5">
               <RiffIcon size={20} primaryColor="rgba(255, 255, 255, 0.5)" secondaryColor="rgba(255, 255, 255, 0.25)" />
               <span style={{ fontFamily: "'Playfair Display', Georgia, serif" }} className="font-medium">Riff</span>
+              <span className="text-[#333] hidden sm:inline">·</span>
+              <span className="text-[#444] hidden sm:inline">Built with vibes</span>
             </div>
-            <span className="text-[#444]">Built with vibes. Present with style.</span>
+            <div className="flex items-center gap-6 text-white/25">
+              <Link href="/terms" className="hover:text-white/50 transition-colors">Terms</Link>
+              <Link href="/privacy" className="hover:text-white/50 transition-colors">Privacy</Link>
+            </div>
           </div>
         </footer>
 
