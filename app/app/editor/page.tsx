@@ -18,6 +18,8 @@ import { SlidePreview } from '@/components/SlidePreview';
 import { DocumentUploader } from '@/components/DocumentUploader';
 import { UserMenu } from '@/components/auth/UserMenu';
 import { PublishPopover, PublishStatus } from '@/components/sharing/PublishPopover';
+import { CreditsDisplay } from '@/components/CreditsDisplay';
+import { PurchaseCreditsModal } from '@/components/PurchaseCreditsModal';
 
 // Wrapper component to handle Suspense for useSearchParams
 function EditorContent() {
@@ -59,6 +61,7 @@ function EditorContent() {
   const [publishStatus, setPublishStatus] = useState<PublishStatus | null>(null);
   const [newDeckName, setNewDeckName] = useState('');
   const [loadingMessage, setLoadingMessage] = useState<string | null>(null);
+  const [showPurchaseModal, setShowPurchaseModal] = useState(false);
 
   // Update page title based on current deck
   const currentDeck = decks.find((d) => d.id === currentDeckId);
@@ -525,6 +528,10 @@ function EditorContent() {
 
             <div className="h-4 w-px bg-border mx-1" />
 
+            <CreditsDisplay onPurchaseClick={() => setShowPurchaseModal(true)} />
+
+            <div className="h-4 w-px bg-border mx-1" />
+
             <UserMenu />
           </div>
         </div>
@@ -682,6 +689,11 @@ function EditorContent() {
         />
       )}
 
+      {/* Purchase Credits Modal */}
+      <PurchaseCreditsModal
+        isOpen={showPurchaseModal}
+        onClose={() => setShowPurchaseModal(false)}
+      />
     </div>
   );
 }

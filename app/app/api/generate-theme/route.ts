@@ -10,6 +10,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { saveTheme } from '@/lib/blob';
 import { DEFAULT_THEME_SYSTEM_PROMPT } from '@/lib/prompts';
+import { requireCredits, deductCredits, CREDIT_COSTS } from '@/lib/credits';
 
 // Create Vercel AI Gateway client
 const gateway = createGateway({
@@ -21,6 +22,12 @@ export async function POST(request: NextRequest) {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Credit check
+    const creditCheck = await requireCredits(session.user.id, CREDIT_COSTS.THEME_GENERATION);
+    if (!creditCheck.allowed) {
+      return NextResponse.json(creditCheck.error, { status: 402 });
     }
 
     const { prompt, deckId, customSystemPrompt } = await request.json();
@@ -88,6 +95,14 @@ export async function POST(request: NextRequest) {
     if (deckId) {
       await saveTheme(session.user.id, deckId, fullCss, prompt);
     }
+
+    // Deduct credits after successful theme generation
+    await deductCredits(
+      session.user.id,
+      CREDIT_COSTS.THEME_GENERATION,
+      'AI theme generation',
+      { prompt, deckId }
+    );
 
     return NextResponse.json({
       css: fullCss,

@@ -8,6 +8,7 @@ import { PrismaAdapter } from '@auth/prisma-adapter';
 import GoogleProvider from 'next-auth/providers/google';
 import GitHubProvider from 'next-auth/providers/github';
 import { prisma } from './prisma';
+import { initializeUserCredits } from './credits';
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as NextAuthOptions['adapter'],
@@ -62,14 +63,25 @@ export const authOptions: NextAuthOptions = {
   },
 
   events: {
-    // Create default preferences for new users
+    // Create default preferences and initialize credits for new users
     createUser: async ({ user }) => {
+      // Create default preferences
       await prisma.userPreferences.create({
         data: {
           userId: user.id,
           imageStyle: 'none',
         },
       });
+
+      // Initialize credits system (creates Dodo customer + gives 50 free credits)
+      if (user.email) {
+        try {
+          await initializeUserCredits(user.id, user.email, user.name || undefined);
+        } catch (error) {
+          // Don't fail user creation if credits init fails - can be lazily initialized later
+          console.error('Failed to initialize credits for new user:', error);
+        }
+      }
     },
   },
 };

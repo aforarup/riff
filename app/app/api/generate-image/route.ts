@@ -4,8 +4,11 @@
 // ============================================
 
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { getImageFromCache, saveImageToCache, deleteImageFromCache } from '@/lib/blob';
 import { IMAGE_STYLE_PRESETS, ImageStyleId } from '@/lib/types';
+import { requireCredits, deductCredits, CREDIT_COSTS, isInsufficientCreditsError } from '@/lib/credits';
 
 // Get the prompt template for a given style, with optional background color
 function getPromptForStyle(description: string, styleId: ImageStyleId, backgroundColor?: string): string {
@@ -37,6 +40,12 @@ function extractImageFromResponse(data: any): string | null {
 
 export async function POST(request: NextRequest) {
   try {
+    // Auth check
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { description, styleId, forceRegenerate, backgroundColor } = await request.json();
 
     if (!description || typeof description !== 'string') {
@@ -53,6 +62,7 @@ export async function POST(request: NextRequest) {
       : description;
 
     // Check cache first (unless force regenerating)
+    // Cached images don't cost credits
     if (!forceRegenerate) {
       const cachedUrl = await getImageFromCache(cacheKey);
       if (cachedUrl) {
@@ -66,6 +76,12 @@ export async function POST(request: NextRequest) {
     } else {
       // Delete existing cache if force regenerating
       await deleteImageFromCache(cacheKey);
+    }
+
+    // Credit check - only if we need to generate (not cached)
+    const creditCheck = await requireCredits(session.user.id, CREDIT_COSTS.IMAGE_GENERATION);
+    if (!creditCheck.allowed) {
+      return NextResponse.json(creditCheck.error, { status: 402 });
     }
 
     // Build the prompt using style preset, including background color
@@ -113,6 +129,14 @@ export async function POST(request: NextRequest) {
         const imageBuffer = Buffer.from(imageData, 'base64');
         const cachedUrl = await saveImageToCache(cacheKey, imageBuffer);
 
+        // Deduct credits after successful generation
+        await deductCredits(
+          session.user.id,
+          CREDIT_COSTS.IMAGE_GENERATION,
+          'AI image generation',
+          { description, styleId, model: 'gemini-3-pro-image-preview' }
+        );
+
         return NextResponse.json({
           url: cachedUrl,
           cached: false,
@@ -154,6 +178,14 @@ export async function POST(request: NextRequest) {
       if (imageData) {
         const imageBuffer = Buffer.from(imageData, 'base64');
         const cachedUrl = await saveImageToCache(cacheKey, imageBuffer);
+
+        // Deduct credits after successful generation
+        await deductCredits(
+          session.user.id,
+          CREDIT_COSTS.IMAGE_GENERATION,
+          'AI image generation',
+          { description, styleId, model: 'imagen-3.0-generate-001' }
+        );
 
         return NextResponse.json({
           url: cachedUrl,
@@ -198,6 +230,14 @@ export async function POST(request: NextRequest) {
       if (imageData) {
         const imageBuffer = Buffer.from(imageData, 'base64');
         const cachedUrl = await saveImageToCache(cacheKey, imageBuffer);
+
+        // Deduct credits after successful generation
+        await deductCredits(
+          session.user.id,
+          CREDIT_COSTS.IMAGE_GENERATION,
+          'AI image generation',
+          { description, styleId, model: 'gemini-2.0-flash-exp' }
+        );
 
         return NextResponse.json({
           url: cachedUrl,

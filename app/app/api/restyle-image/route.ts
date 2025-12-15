@@ -4,8 +4,11 @@
 // ============================================
 
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { put } from '@vercel/blob';
 import { IMAGE_STYLE_PRESETS, ImageStyleId } from '@/lib/types';
+import { requireCredits, deductCredits, CREDIT_COSTS } from '@/lib/credits';
 import crypto from 'crypto';
 
 // Get restyle prompt for a given preset
@@ -52,6 +55,12 @@ async function fetchImageAsBase64(url: string): Promise<{ data: string; mimeType
 
 export async function POST(request: NextRequest) {
   try {
+    // Auth check
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { imageUrl, styleId, customPrompt, backgroundColor } = await request.json();
 
     if (!imageUrl) {
@@ -66,6 +75,12 @@ export async function POST(request: NextRequest) {
         { error: 'Either styleId or customPrompt is required' },
         { status: 400 }
       );
+    }
+
+    // Credit check
+    const creditCheck = await requireCredits(session.user.id, CREDIT_COSTS.IMAGE_RESTYLE);
+    if (!creditCheck.allowed) {
+      return NextResponse.json(creditCheck.error, { status: 402 });
     }
 
     const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
@@ -145,6 +160,14 @@ export async function POST(request: NextRequest) {
           contentType: 'image/png',
         });
 
+        // Deduct credits after successful restyle
+        await deductCredits(
+          session.user.id,
+          CREDIT_COSTS.IMAGE_RESTYLE,
+          'AI image restyle',
+          { originalUrl: imageUrl, styleId: styleId || 'custom', model: 'gemini-3-pro-image-preview' }
+        );
+
         return NextResponse.json({
           url: blob.url,
           originalUrl: imageUrl,
@@ -200,6 +223,14 @@ export async function POST(request: NextRequest) {
           access: 'public',
           contentType: 'image/png',
         });
+
+        // Deduct credits after successful restyle
+        await deductCredits(
+          session.user.id,
+          CREDIT_COSTS.IMAGE_RESTYLE,
+          'AI image restyle',
+          { originalUrl: imageUrl, styleId: styleId || 'custom', model: 'gemini-2.0-flash-exp' }
+        );
 
         return NextResponse.json({
           url: blob.url,

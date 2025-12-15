@@ -73,6 +73,10 @@ model User {
   // Shared deck access
   sharedDecks DeckShare[]
 
+  // Credits system
+  credits      UserCredits?
+  transactions CreditTransaction[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -163,4 +167,45 @@ model DeckShare {
 enum Permission {
   VIEW
   EDIT
+}
+
+// ============================================
+// Credits System
+// ============================================
+
+model UserCredits {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // DodoPayments customer ID (for wallet operations)
+  dodoCustomerId String @unique
+
+  // Cached balance for quick UI display (source of truth is Dodo wallet)
+  cachedBalance Float    @default(0)
+  lastSynced    DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CreditTransaction {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Transaction details
+  amount      Float   // Positive = add, Negative = deduct
+  type        String  // "purchase", "usage", "bonus", "refund", "initial"
+  description String? // "AI image generation", "Theme generation", etc.
+  metadata    Json?   // Additional context (e.g., deckId, imageDescription)
+
+  // DodoPayments reference
+  dodoLedgerId String? // Reference to Dodo wallet ledger entry
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([type])
 }

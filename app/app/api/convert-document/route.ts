@@ -11,6 +11,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { saveDeckBlob } from '@/lib/blob';
 import { DOCUMENT_TO_SLIDES_PROMPT } from '@/lib/prompts';
+import { requireCredits, deductCredits, CREDIT_COSTS } from '@/lib/credits';
 import { nanoid } from 'nanoid';
 
 // Create Vercel AI Gateway client
@@ -23,6 +24,12 @@ export async function POST(request: NextRequest) {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Credit check
+    const creditCheck = await requireCredits(session.user.id, CREDIT_COSTS.DOCUMENT_CONVERSION);
+    if (!creditCheck.allowed) {
+      return NextResponse.json(creditCheck.error, { status: 402 });
     }
 
     const { document, documentName, options } = await request.json();
@@ -147,6 +154,14 @@ Begin:`;
 
     // Count slides (number of --- separators + 1)
     const slideCountResult = (cleanedMarkdown.match(/^---$/gm) || []).length + 1;
+
+    // Deduct credits after successful conversion
+    await deductCredits(
+      session.user.id,
+      CREDIT_COSTS.DOCUMENT_CONVERSION,
+      'Document to slides conversion',
+      { deckId: deck.id, documentName, slideCount: slideCountResult }
+    );
 
     return NextResponse.json({
       deck: {

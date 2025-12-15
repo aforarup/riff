@@ -4,6 +4,7 @@
 // VIBE SLIDES - Slide Renderer Component
 // ============================================
 
+import { forwardRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Slide, SlideElement, ImageManifest, ImageSlot } from '@/lib/types';
 import { getVisibleElements } from '@/lib/parser';
@@ -127,14 +128,14 @@ interface ElementRendererProps {
   onActiveSlotChange?: (description: string, slot: ImageSlot) => void;
 }
 
-function ElementRenderer({
+const ElementRenderer = forwardRef<HTMLDivElement, ElementRendererProps>(function ElementRenderer({
   element,
   index,
   isPresenting,
   imageManifest,
   onImageChange,
   onActiveSlotChange,
-}: ElementRendererProps) {
+}, ref) {
   // Get effect class from metadata (e.g. "effect-anvil" for [anvil] decorator)
   const effectClass = element.metadata?.effect ? `effect-${element.metadata.effect}` : '';
 
@@ -270,6 +271,7 @@ function ElementRenderer({
 
   return (
     <motion.div
+      ref={ref}
       variants={variants}
       initial="hidden"
       animate="visible"
@@ -279,20 +281,20 @@ function ElementRenderer({
       {renderContent()}
     </motion.div>
   );
-}
+});
 
 // ============================================
 // Section Element Renderer (bolder/larger for section headers)
 // ============================================
 
-function SectionElementRenderer({
+const SectionElementRenderer = forwardRef<HTMLDivElement, ElementRendererProps>(function SectionElementRenderer({
   element,
   index,
   isPresenting,
   imageManifest,
   onImageChange,
   onActiveSlotChange,
-}: ElementRendererProps) {
+}, ref) {
   // Get effect class from metadata (e.g. "effect-anvil" for [anvil] decorator)
   const effectClass = element.metadata?.effect ? `effect-${element.metadata.effect}` : '';
 
@@ -389,6 +391,7 @@ function SectionElementRenderer({
 
   return (
     <motion.div
+      ref={ref}
       variants={variants}
       initial="hidden"
       animate="visible"
@@ -398,7 +401,7 @@ function SectionElementRenderer({
       {renderContent()}
     </motion.div>
   );
-}
+});
 
 // ============================================
 // Highlighted Text (for `backtick` markers)
