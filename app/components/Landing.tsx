@@ -618,6 +618,7 @@ export function Landing() {
               <span className="text-[#444] hidden sm:inline">Built with vibes</span>
             </div>
             <div className="flex items-center gap-6 text-white/25">
+              <Link href="/philosophy" className="hover:text-white/50 transition-colors">Philosophy</Link>
               <Link href="/terms" className="hover:text-white/50 transition-colors">Terms</Link>
               <Link href="/privacy" className="hover:text-white/50 transition-colors">Privacy</Link>
             </div>
