@@ -9,6 +9,7 @@ import { prisma } from '@/lib/prisma';
 import { parseSlideMarkdown } from '@/lib/parser';
 import { EmbedClient } from '@/components/EmbedClient';
 import { ImageUrlHydrator } from '@/components/ImageUrlHydrator';
+import { ViewTracker } from '@/components/ViewTracker';
 
 // Disable caching - always fetch fresh published content
 export const dynamic = 'force-dynamic';
@@ -89,6 +90,7 @@ export default async function EmbedPresentationPage({ params, searchParams }: Pa
 
   return (
     <>
+      <ViewTracker token={token} />
       <ImageUrlHydrator imageUrls={imageUrls} />
       <EmbedClient
         deck={parsedDeck}

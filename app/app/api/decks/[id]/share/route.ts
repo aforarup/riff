@@ -42,6 +42,7 @@ export async function POST(
         shareUrl: `${baseUrl}/p/${deck.shareToken}`,
         isPublished: !!deck.publishedAt,
         publishedAt: deck.publishedAt?.toISOString() || null,
+        views: deck.views,
       });
     }
 
@@ -60,6 +61,7 @@ export async function POST(
       shareUrl: `${baseUrl}/p/${updatedDeck.shareToken}`,
       isPublished: false,
       publishedAt: null,
+      views: 0,
     });
   } catch (error) {
     console.error('Error creating share:', error);
@@ -102,6 +104,7 @@ export async function GET(
         shareUrl: null,
         isPublished: false,
         publishedAt: null,
+        views: 0,
       });
     }
 
@@ -112,6 +115,7 @@ export async function GET(
       shareUrl: `${baseUrl}/p/${deck.shareToken}`,
       isPublished: !!deck.publishedAt,
       publishedAt: deck.publishedAt?.toISOString() || null,
+      views: deck.views,
     });
   } catch (error) {
     console.error('Error getting share status:', error);

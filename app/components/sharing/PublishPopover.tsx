@@ -20,6 +20,7 @@ import {
   CloudAlert,
   CloudCheck,
   CloudBackup,
+  BarChart3,
 } from 'lucide-react';
 
 export interface PublishStatus {
@@ -27,6 +28,7 @@ export interface PublishStatus {
   publishedAt: string | null;
   hasUnpublishedChanges: boolean;
   shareToken: string | null;
+  views: number;
 }
 
 interface PublishPopoverProps {
@@ -138,6 +140,7 @@ export function PublishPopover({
         publishedAt: data.publishedAt,
         hasUnpublishedChanges: false,
         shareToken: data.shareToken,
+        views: data.views ?? status?.views ?? 0,
       };
 
       setStatus(newStatus);
@@ -189,6 +192,7 @@ export function PublishPopover({
         publishedAt: null,
         hasUnpublishedChanges: false,
         shareToken: null,
+        views: 0,
       };
 
       setStatus(newStatus);
@@ -268,10 +272,16 @@ export function PublishPopover({
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-semibold text-zinc-100">Publish</span>
                   {status?.isPublished && (
-                    <span className="flex items-center gap-1.5 px-2 py-0.5 text-xs font-medium rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                      Live
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="flex items-center gap-1.5 px-2 py-0.5 text-xs rounded-full bg-zinc-800 text-zinc-400 border border-zinc-700">
+                        <BarChart3 className="w-3 h-3" />
+                        {status.views.toLocaleString()} views
+                      </span>
+                      <span className="flex items-center gap-1.5 px-2 py-0.5 text-xs font-medium rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                        Live
+                      </span>
+                    </div>
                   )}
                 </div>
               </div>
@@ -317,9 +327,6 @@ export function PublishPopover({
                     >
                       <ExternalLink className="w-3 h-3" />
                       <span>Open preview</span>
-                      {status.publishedAt && (
-                        <span className="text-zinc-600">· {formatRelativeTime(status.publishedAt)}</span>
-                      )}
                     </a>
                   </div>
                 )}

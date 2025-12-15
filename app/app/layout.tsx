@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Analytics } from '@vercel/analytics/next';
 import './globals.css';
 import { AuthProvider } from '@/components/auth/AuthProvider';
 import { CreditsProvider } from '@/hooks/useCredits';
@@ -47,6 +48,7 @@ export default function RootLayout({
         <AuthProvider>
           <CreditsProvider>{children}</CreditsProvider>
         </AuthProvider>
+        <Analytics />
       </body>
     </html>
   );

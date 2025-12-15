@@ -125,6 +125,7 @@ model Deck {
   publishedContent String?   @db.Text // Markdown snapshot at publish time
   publishedTheme   String?   @db.Text // Theme JSON snapshot at publish time
   publishedAt      DateTime? // Last publish timestamp
+  views            Int       @default(0) // View count for published pages
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

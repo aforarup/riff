@@ -142,6 +142,7 @@ export async function POST(
       shareToken: updatedDeck.shareToken,
       shareUrl: `${baseUrl}/p/${updatedDeck.shareToken}`,
       publishedAt: updatedDeck.publishedAt?.toISOString(),
+      views: updatedDeck.views,
     });
   } catch (error) {
     console.error('Error publishing deck:', error);

@@ -10,6 +10,7 @@ import { parseSlideMarkdown } from '@/lib/parser';
 import { PresenterClient } from '@/app/present/[id]/client';
 import { RiffBadge } from '@/components/RiffBadge';
 import { ImageUrlHydrator } from '@/components/ImageUrlHydrator';
+import { ViewTracker } from '@/components/ViewTracker';
 
 // Disable caching - always fetch fresh published content
 export const dynamic = 'force-dynamic';
@@ -110,6 +111,7 @@ export default async function SharedPresentationPage({ params, searchParams }: P
 
   return (
     <>
+      <ViewTracker token={token} />
       <ImageUrlHydrator imageUrls={imageUrls} />
       <PresenterClient
         deck={parsedDeck}

@@ -57,6 +57,7 @@ export async function GET(
         publishedAt: deck.publishedAt?.toISOString() || null,
         hasUnpublishedChanges,
         shareToken: deck.shareToken || null,
+        views: deck.views,
       },
     });
   } catch (error) {

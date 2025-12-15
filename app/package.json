@@ -21,6 +21,7 @@
     "@auth/prisma-adapter": "^1.6.0",
     "@number-flow/react": "^0.5.10",
     "@prisma/client": "^5.22.0",
+    "@vercel/analytics": "^1.6.1",
     "@vercel/blob": "^0.24.0",
     "ai": "^5.0.108",
     "clsx": "^2.1.1",

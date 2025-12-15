@@ -301,7 +301,7 @@ export default function DocsPage() {
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="mb-16"
+                className="mb-12"
               >
                 <h1
                   className="text-4xl sm:text-5xl font-semibold tracking-tight mb-4"
@@ -313,6 +313,35 @@ export default function DocsPage() {
                   Everything you need to create beautiful presentations with Riff.
                   From basic markdown to advanced theming.
                 </p>
+              </motion.div>
+
+              {/* Philosophy callout */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="mb-16"
+              >
+                <Link
+                  href="/philosophy"
+                  className="group block p-5 rounded-xl bg-gradient-to-r from-amber-500/[0.06] to-transparent border border-amber-500/15 hover:border-amber-500/25 transition-all"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-9 h-9 rounded-lg bg-amber-500/15 flex items-center justify-center flex-shrink-0">
+                      <svg className="w-4.5 h-4.5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                      </svg>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-[14px] text-white/70 group-hover:text-amber-300 transition-colors">
+                        <strong className="text-white/90 font-medium">Our Philosophy</strong>
+                        <span className="mx-2 text-white/20">·</span>
+                        No subscriptions. No dark patterns. No lock-in.
+                      </span>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-white/20 group-hover:text-amber-400 group-hover:translate-x-0.5 transition-all flex-shrink-0" />
+                  </div>
+                </Link>
               </motion.div>
 
               {/* ============================================ */}
