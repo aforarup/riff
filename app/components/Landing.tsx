@@ -11,7 +11,7 @@ import {
   ImageIcon,
   Play,
   User,
-  LogIn,
+  CircleUserRound,
 } from 'lucide-react';
 import Link from 'next/link';
 import { DocumentUploader } from './DocumentUploader';
@@ -169,7 +169,7 @@ export function Landing() {
                   className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
                   title="Sign in"
                 >
-                  <LogIn className="w-4 h-4 text-white/70" />
+                  <CircleUserRound className="w-4 h-4 text-white/70" />
                 </Link>
               )}
             </div>

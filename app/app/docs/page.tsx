@@ -16,7 +16,7 @@ import {
   Play,
   Share2,
   Upload,
-  Keyboard,
+  Coins,
   Menu,
   X,
   ExternalLink,
@@ -97,6 +97,15 @@ const TOC = [
     children: [
       { id: 'supported-formats', title: 'Supported Formats' },
       { id: 'conversion-tips', title: 'Conversion Tips' },
+    ],
+  },
+  {
+    id: 'credits',
+    title: 'Credits',
+    icon: Coins,
+    children: [
+      { id: 'how-credits-work', title: 'How Credits Work' },
+      { id: 'credit-costs', title: 'Credit Costs' },
     ],
   },
 ];
@@ -845,6 +854,78 @@ Final reveal!`} />
                     <li>Keep paragraphs concise</li>
                     <li>Review and edit after import</li>
                   </ul>
+                </div>
+              </section>
+
+              {/* ============================================ */}
+              {/* CREDITS */}
+              {/* ============================================ */}
+
+              <section data-section="credits" className="scroll-mt-24">
+                <div className="flex items-center gap-3 mb-8">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500/20 to-yellow-500/20 flex items-center justify-center">
+                    <Coins className="w-5 h-5 text-amber-400" />
+                  </div>
+                  <h2 className="text-2xl font-semibold">Credits</h2>
+                </div>
+              </section>
+
+              <section data-section="how-credits-work" className="mb-12 scroll-mt-24">
+                <h3 className="text-xl font-medium mb-4 text-white/90">How Credits Work</h3>
+                <div className="prose-custom">
+                  <p>
+                    Credits are used for AI-powered features. You only pay for what you use—no subscriptions,
+                    no monthly fees.
+                  </p>
+                  <ul className="list-disc list-outside ml-5 space-y-2 text-white/60 mt-4">
+                    <li><strong className="text-white/80">New users</strong> get 50 free credits to explore</li>
+                    <li><strong className="text-white/80">$1 = 20 credits</strong> ($0.05 per credit)</li>
+                    <li><strong className="text-white/80">Credits never expire</strong></li>
+                  </ul>
+                  <div className="mt-6 p-4 rounded-xl bg-gradient-to-r from-amber-500/10 to-transparent border border-amber-500/20">
+                    <p className="text-amber-200/80 text-[14px]">
+                      <strong className="text-amber-300">Our philosophy:</strong> Don&apos;t create anxiety
+                      around parked money. Buy what you need, use it whenever.{' '}
+                      <Link href="/philosophy" className="text-amber-400 hover:text-amber-300">Read more →</Link>
+                    </p>
+                  </div>
+                </div>
+              </section>
+
+              <section data-section="credit-costs" className="mb-16 scroll-mt-24">
+                <h3 className="text-xl font-medium mb-4 text-white/90">Credit Costs</h3>
+                <div className="prose-custom">
+                  <p>Here&apos;s what each AI feature costs:</p>
+                  <div className="mt-6 p-5 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center py-2 border-b border-white/[0.06]">
+                        <span className="text-white/70">Generate image</span>
+                        <span className="text-amber-400 font-medium tabular-nums">1 credit</span>
+                      </div>
+                      <div className="flex justify-between items-center py-2 border-b border-white/[0.06]">
+                        <span className="text-white/70">Restyle image</span>
+                        <span className="text-amber-400 font-medium tabular-nums">1 credit</span>
+                      </div>
+                      <div className="flex justify-between items-center py-2 border-b border-white/[0.06]">
+                        <div>
+                          <span className="text-white/70">Import document</span>
+                          <span className="text-white/40 text-[13px] ml-2">(includes auto-theme)</span>
+                        </div>
+                        <span className="text-amber-400 font-medium tabular-nums">1.2 credits</span>
+                      </div>
+                      <div className="flex justify-between items-center py-2 border-b border-white/[0.06]">
+                        <span className="text-white/70">Revamp deck</span>
+                        <span className="text-amber-400 font-medium tabular-nums">1 credit</span>
+                      </div>
+                      <div className="flex justify-between items-center py-2">
+                        <span className="text-white/70">Generate theme</span>
+                        <span className="text-amber-400 font-medium tabular-nums">0.2 credits</span>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="mt-4 text-[14px] text-white/40">
+                    Everything else—editing, presenting, publishing, embedding—is completely free.
+                  </p>
                 </div>
               </section>
 

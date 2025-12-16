@@ -58,10 +58,18 @@ Implemented three major improvements to the deck generation/polishing experience
 - `components/SlideEditor.tsx` - Added Revamp button, moved Handbook to footer
 - `app/editor/page.tsx` - Wired up revamp handler and dialog
 - `app/api/convert-document/route.ts` - Context injection, auto theme generation
+- `app/docs/page.tsx` - Added Credits section with costs table
 - `lib/credits-config.ts` - Added DECK_REVAMP cost
+
+### Feature 5: Credits Documentation
+- Added "Credits" section to docs page with TOC entry
+- "How Credits Work" - explains credit system, pricing, philosophy link
+- "Credit Costs" - table showing all AI feature costs
+- Uses Coins icon, amber color scheme consistent with site
 
 ## Technical Notes
 - Theme auto-generation reuses same logic as generate-theme API
 - Editor already loads themes via `/api/theme/{deckId}`, so no client changes needed
 - Revamp feature follows same pattern as theme generation (modal → API → update content)
 - Suggestion bubbles use separate state updates to avoid React batching issues
+- Import document costs 1.2 credits (1 for slides + 0.2 for auto-theme)
